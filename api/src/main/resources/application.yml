@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/app}
+    username: ${DATABASE_USERNAME:app}
+    password: ${DATABASE_PASSWORD:app}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  mvc:
+    problemdetails:
+      enabled: true
+
+app:
+  # HMAC key for the API's own JWTs. Must be >= 32 bytes. Never commit a real one.
+  jwt-secret: ${JWT_SECRET}
+  jwt-ttl: ${JWT_TTL:PT15M}
+  cors-origins: ${CORS_ORIGINS:http://localhost:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    # Serve the hand-written contract, not the generated one.
+    url: /openapi.yaml
