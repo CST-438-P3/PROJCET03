@@ -1,0 +1,59 @@
+name: CI Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  app-test:
+    name: App Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: app
+
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: app
+
+      # Also fails if coverage goes below 70% (set in package.json)
+      - name: Run App Tests
+        run: npm run test:ci
+        working-directory: app
+
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # gradlew was committed without permission to run, so fix it
+      - name: Make gradlew Runnable
+        run: chmod +x gradlew
+        working-directory: api
+
+      # Runs the tests and the 70% coverage check from build.gradle
+      - name: Run Backend Tests
+        run: ./gradlew check
+        working-directory: api
