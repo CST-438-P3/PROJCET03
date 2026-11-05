@@ -2,7 +2,7 @@ spring:
   application:
     name: api
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/app}
+    url: ${DATABASE_URL:jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_NAME:app}?sslmode=${DATABASE_SSLMODE:disable}}
     username: ${DATABASE_USERNAME:app}
     password: ${DATABASE_PASSWORD:app}
   jpa:
@@ -12,6 +12,9 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+
+server:
+  port: ${PORT:8080}
 
 app:
   # HMAC key for the API's own JWTs. Must be >= 32 bytes. Never commit a real one.
