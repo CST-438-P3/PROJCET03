@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: project03-api
+    runtime: docker
+    rootDir: api
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_NAME
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: DATABASE_SSLMODE
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true

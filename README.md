@@ -22,6 +22,20 @@ cd app && npm install && npm run web                  # http://localhost:8081
 
 API contract: `api/src/main/resources/static/openapi.yaml`, Swagger UI at `/swagger-ui.html`.
 
+## Deploy API to Render with Neon Postgres
+
+The root `render.yaml` deploys the Spring API on Render and prompts for
+Neon connection settings; the database itself is hosted on Neon. Create a Neon
+project, then create a Blueprint in Render from this repository. When prompted,
+copy the host, database name, username, and password from Neon into the
+corresponding fields, and set `DATABASE_SSLMODE` to `require`. Keep the database
+password secret. Render generates `JWT_SECRET`.
+
+The Expo app is not deployed by this Blueprint; set `EXPO_PUBLIC_API_URL` in its
+build environment to the deployed API URL when configuring an app deployment.
+For a web deployment, also set the API's `CORS_ORIGINS` to the web app's exact
+origin.
+
 ## Tests
 
 ```sh
