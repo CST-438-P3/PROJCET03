@@ -469,7 +469,7 @@ components:
       required: [shelterId, name, species]
       properties:
         shelterId: { type: integer, format: int64 }
-        name: { type: string, minLength: 1, maxLength: 60 }
+        name: { type: string, minLength: 1, maxLength: 60, pattern: '\S', description: Spaces at the start and end are removed. Must not be only spaces. }
         species: { $ref: '#/components/schemas/Species' }
         ageMonths: { type: integer, minimum: 0, maximum: 360 }
         description: { type: string, maxLength: 2000 }
@@ -478,7 +478,7 @@ components:
       type: object
       required: [name, species, status]
       properties:
-        name: { type: string, minLength: 1, maxLength: 60 }
+        name: { type: string, minLength: 1, maxLength: 60, pattern: '\S', description: Spaces at the start and end are removed. Must not be only spaces. }
         species: { $ref: '#/components/schemas/Species' }
         ageMonths: { type: integer, minimum: 0, maximum: 360 }
         description: { type: string, maxLength: 2000 }
