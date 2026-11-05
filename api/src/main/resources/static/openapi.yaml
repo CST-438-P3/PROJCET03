@@ -1,15 +1,36 @@
 openapi: 3.1.0
 info:
   title: PROJECT03 API
-  version: 0.1.0
-  description: Contract-first. Change this file in a PR *before* the controller that implements it.
+  version: 0.2.0
+  description: |
+    Contract-first. Change this file in a PR *before* the controller that implements it.
+    First draft of every MVP endpoint (stories S1–S10 in docs/prd.md). Each owner refines their
+    own paths in later PRs.
 servers:
   - url: http://localhost:8080
 security:
   - bearerAuth: []
+tags:
+  - name: auth
+    description: Role 1. Sign-in (S1, S2)
+  - name: users
+    description: Role 1 and Role 3. Profile, location, delete account (S3, S4)
+  - name: shelters
+    description: Role 2. Shelters (S6, S10)
+  - name: posts
+    description: Role 2. Adoption posts (S6, S7)
+  - name: search
+    description: Role 3. Nearby search (S5)
+  - name: favorites
+    description: Role 4. Favorites (S8)
+  - name: inquiries
+    description: Role 4. Inquiries (S9)
+  - name: admin
+    description: Role 1 and Role 2. Admin only (S10)
 paths:
   /auth/github:
     post:
+      tags: [auth]
       summary: Exchange a GitHub authorization code (PKCE) for an API JWT
       security: []
       requestBody:
@@ -24,6 +45,7 @@ paths:
         '409': { description: Verified email already registered via the other provider, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   /auth/google:
     post:
+      tags: [auth]
       summary: Exchange a Google authorization code (PKCE) for an API JWT
       security: []
       requestBody:
@@ -38,32 +60,322 @@ paths:
         '409': { description: Verified email already registered via the other provider, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   /users/me:
     get:
+      tags: [users]
       summary: Current user's profile
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
         '401': { $ref: '#/components/responses/Problem' }
     patch:
-      summary: Update profile
+      tags: [users]
+      summary: Update profile, ZIP code and default distance (S3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdate' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [users]
+      summary: Delete account and all of the user's data (S4)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Problem' }
+
+  /shelters:
+    get:
+      tags: [shelters]
+      summary: List shelters
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ShelterPage' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /shelters/{shelterId}:
+    parameters:
+      - $ref: '#/components/parameters/ShelterId'
+    get:
+      tags: [shelters]
+      summary: One shelter
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Shelter' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /shelters/mine:
+    get:
+      tags: [shelters]
+      summary: Shelters the current user is staff for
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Shelter' } } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /shelters/{shelterId}/inquiries:
+    parameters:
+      - $ref: '#/components/parameters/ShelterId'
+    get:
+      tags: [inquiries]
+      summary: Shelter inbox. Inquiries on this shelter's posts (S9, staff only)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/InquiryPage' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /posts:
+    get:
+      tags: [posts]
+      summary: List posts, optionally for one shelter
+      parameters:
+        - name: shelterId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/PostStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [posts]
+      summary: Create a post for a shelter the user is staff for (S7)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostCreate' }
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location: { schema: { type: string }, description: URL of the new post }
+          content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /posts/{postId}:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    get:
+      tags: [posts]
+      summary: One post with its shelter and distance from the user (S6)
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [posts]
+      summary: Replace a post (S7, staff of the post's shelter only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostUpdate' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { description: "Not staff for this post's shelter (\"You can't edit this post\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [posts]
+      summary: Change a post's status, e.g. mark adopted (S7)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [status]
               properties:
-                displayName: { type: string, minLength: 1, maxLength: 100 }
+                status: { $ref: '#/components/schemas/PostStatus' }
       responses:
-        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
     delete:
-      summary: Delete account and all of the user's data
+      tags: [posts]
+      summary: Delete a post (S7, staff of the post's shelter only)
       responses:
         '204': { description: Deleted }
         '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /posts/nearby:
+    get:
+      tags: [search]
+      summary: Available posts within a distance of a ZIP code, nearest first (S5)
+      description: zip and distance default to the user's saved profile values.
+      parameters:
+        - name: zip
+          in: query
+          schema: { $ref: '#/components/schemas/Zip' }
+        - name: distance
+          in: query
+          description: Miles
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - name: species
+          in: query
+          schema: { $ref: '#/components/schemas/Species' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
+        '400': { description: Unknown ZIP code or no ZIP set, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+
+  /favorites:
+    get:
+      tags: [favorites]
+      summary: Current user's favorite posts (S8)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /favorites/{postId}:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    put:
+      tags: [favorites]
+      summary: Save a post to favorites. Saving twice is not an error (S8)
+      responses:
+        '204': { description: Saved }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [favorites]
+      summary: Remove a post from favorites (S8)
+      responses:
+        '204': { description: Removed }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /posts/{postId}/inquiries:
+    parameters:
+      - $ref: '#/components/parameters/PostId'
+    post:
+      tags: [inquiries]
+      summary: Send an inquiry about a post (S9)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InquiryCreate' }
+      responses:
+        '201': { description: Sent, content: { application/json: { schema: { $ref: '#/components/schemas/Inquiry' } } } }
+        '400': { description: "Empty message (\"Message can't be empty\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /inquiries:
+    get:
+      tags: [inquiries]
+      summary: Inquiries the current user sent (S9)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/InquiryPage' } } } }
+        '401': { $ref: '#/components/responses/Problem' }
+
+  /admin/shelters:
+    post:
+      tags: [admin]
+      summary: Create a shelter (S10)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShelterCreate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Shelter' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /admin/shelters/{shelterId}:
+    parameters:
+      - $ref: '#/components/parameters/ShelterId'
+    put:
+      tags: [admin]
+      summary: Update a shelter (S10)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShelterCreate' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Shelter' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [admin]
+      summary: Delete a shelter and its posts (S10)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /admin/shelters/{shelterId}/staff/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/ShelterId'
+      - name: userId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    put:
+      tags: [admin]
+      summary: Grant a user the shelter role for this shelter (S10)
+      responses:
+        '204': { description: Granted }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [admin]
+      summary: Revoke a user's shelter role for this shelter (S10)
+      responses:
+        '204': { description: Revoked }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Zero-based page number
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    ShelterId:
+      name: shelterId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
   responses:
     Problem:
       description: Error (RFC 9457)
@@ -82,7 +394,7 @@ components:
       type: object
       required: [token, user]
       properties:
-        token: { type: string, description: API-issued JWT, short-lived }
+        token: { type: string, description: "API-issued JWT, short-lived" }
         user: { $ref: '#/components/schemas/User' }
     User:
       type: object
@@ -92,6 +404,130 @@ components:
         email: { type: string, format: email }
         displayName: { type: string }
         role: { type: string, enum: [USER, ADMIN] }
+        zip: { oneOf: [{ $ref: '#/components/schemas/Zip' }, { type: 'null' }] }
+        radiusMiles: { type: integer, minimum: 1, maximum: 100 }
+    UserUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 100 }
+        zip: { $ref: '#/components/schemas/Zip' }
+        radiusMiles: { type: integer, minimum: 1, maximum: 100 }
+    Zip:
+      type: string
+      pattern: '^[0-9]{5}$'
+      examples: ['93933']
+    Species:
+      type: string
+      enum: [CAT, DOG]
+    PostStatus:
+      type: string
+      enum: [AVAILABLE, ADOPTED]
+    Shelter:
+      type: object
+      required: [id, name, address, zip]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        address: { type: string }
+        zip: { $ref: '#/components/schemas/Zip' }
+        phone: { type: string }
+        email: { type: string, format: email }
+    ShelterCreate:
+      type: object
+      required: [name, address, zip]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        address: { type: string, minLength: 1, maxLength: 200 }
+        zip: { $ref: '#/components/schemas/Zip' }
+        phone: { type: string, maxLength: 30 }
+        email: { type: string, format: email }
+    ShelterSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+    Post:
+      type: object
+      required: [id, shelter, name, species, status]
+      properties:
+        id: { type: integer, format: int64 }
+        shelter: { $ref: '#/components/schemas/ShelterSummary' }
+        name: { type: string }
+        species: { $ref: '#/components/schemas/Species' }
+        ageMonths: { type: integer, minimum: 0 }
+        description: { type: string }
+        photoUrl: { type: string, format: uri }
+        status: { $ref: '#/components/schemas/PostStatus' }
+        distanceMiles:
+          type: number
+          description: From the user's ZIP. Missing when the user has no ZIP set.
+        favorite: { type: boolean, description: True if the current user saved it }
+        createdAt: { type: string, format: date-time }
+    PostCreate:
+      type: object
+      required: [shelterId, name, species]
+      properties:
+        shelterId: { type: integer, format: int64 }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        species: { $ref: '#/components/schemas/Species' }
+        ageMonths: { type: integer, minimum: 0, maximum: 360 }
+        description: { type: string, maxLength: 2000 }
+        photoUrl: { type: string, format: uri }
+    PostUpdate:
+      type: object
+      required: [name, species, status]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60 }
+        species: { $ref: '#/components/schemas/Species' }
+        ageMonths: { type: integer, minimum: 0, maximum: 360 }
+        description: { type: string, maxLength: 2000 }
+        photoUrl: { type: string, format: uri }
+        status: { $ref: '#/components/schemas/PostStatus' }
+    Inquiry:
+      type: object
+      required: [id, postId, message, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        postId: { type: integer, format: int64 }
+        postName: { type: string }
+        fromDisplayName: { type: string }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+    InquiryCreate:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 1000 }
+    PageInfo:
+      type: object
+      required: [page, size, totalElements, totalPages]
+      properties:
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+    ShelterPage:
+      allOf:
+        - $ref: '#/components/schemas/PageInfo'
+        - type: object
+          required: [content]
+          properties:
+            content: { type: array, items: { $ref: '#/components/schemas/Shelter' } }
+    PostPage:
+      allOf:
+        - $ref: '#/components/schemas/PageInfo'
+        - type: object
+          required: [content]
+          properties:
+            content: { type: array, items: { $ref: '#/components/schemas/Post' } }
+    InquiryPage:
+      allOf:
+        - $ref: '#/components/schemas/PageInfo'
+        - type: object
+          required: [content]
+          properties:
+            content: { type: array, items: { $ref: '#/components/schemas/Inquiry' } }
     Problem:
       type: object
       description: RFC 9457 Problem Details
