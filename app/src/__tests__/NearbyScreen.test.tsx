@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { NearbyScreen } from '../NearbyScreen';
 
 const pets = [
@@ -8,18 +8,24 @@ const pets = [
 
 test('searches by ZIP and shows nearest results', async () => {
   const loadPets = jest.fn(async (_zip: string, distance: number) => pets.filter((pet) => pet.distanceMiles <= distance));
-  render(<NearbyScreen loadPets={loadPets} />);
+  const view = render(<NearbyScreen loadPets={loadPets} />);
 
-  await fireEvent.press(screen.getByRole('button', { name: 'Search nearby pets' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
 
-  await waitFor(() => expect(screen.getByText('Luna')).toBeTruthy());
-  expect(screen.queryByText('Bella')).toBeNull();
+  await waitFor(() => expect(view.getByText('Luna')).toBeTruthy());
+  expect(view.queryByText('Bella')).toBeNull();
   expect(loadPets).toHaveBeenCalledWith('93933', 10);
-  expect(screen.getByText('2 mi')).toBeTruthy();
+  expect(view.getByText('2 mi')).toBeTruthy();
 });
 
 test('shows the empty state when no pets are in range', async () => {
-  render(<NearbyScreen loadPets={async () => []} />);
-  await fireEvent.press(screen.getByRole('button', { name: 'Search nearby pets' }));
-  expect(await screen.findByText('No pets within 10 miles.')).toBeTruthy();
+  const view = render(<NearbyScreen loadPets={async () => []} />);
+  await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
+  expect(await view.findByText('No pets within 10 miles.')).toBeTruthy();
+});
+
+test('shows an error when the search fails', async () => {
+  const view = render(<NearbyScreen loadPets={async () => { throw new Error('network'); }} />);
+  await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
+  expect(await view.findByRole('alert')).toHaveTextContent("We couldn't load nearby pets. Please try again.");
 });
