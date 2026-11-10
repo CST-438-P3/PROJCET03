@@ -8,7 +8,7 @@ const pets = [
 
 test('searches by ZIP and shows nearest results', async () => {
   const loadPets = jest.fn(async (_zip: string, distance: number) => pets.filter((pet) => pet.distanceMiles <= distance));
-  const view = render(<NearbyScreen loadPets={loadPets} />);
+  const view = await render(<NearbyScreen loadPets={loadPets} />);
 
   await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
 
@@ -19,13 +19,13 @@ test('searches by ZIP and shows nearest results', async () => {
 });
 
 test('shows the empty state when no pets are in range', async () => {
-  const view = render(<NearbyScreen loadPets={async () => []} />);
+  const view = await render(<NearbyScreen loadPets={async () => []} />);
   await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
   expect(await view.findByText('No pets within 10 miles.')).toBeTruthy();
 });
 
 test('shows an error when the search fails', async () => {
-  const view = render(<NearbyScreen loadPets={async () => { throw new Error('network'); }} />);
+  const view = await render(<NearbyScreen loadPets={async () => { throw new Error('network'); }} />);
   await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
   expect(await view.findByRole('alert')).toHaveTextContent("We couldn't load nearby pets. Please try again.");
 });
