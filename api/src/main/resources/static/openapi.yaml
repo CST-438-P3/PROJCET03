@@ -216,13 +216,15 @@ paths:
     get:
       tags: [search]
       summary: Available posts within a distance of a ZIP code, nearest first (S5)
-      description: zip and distance default to the user's saved profile values.
+      description: This vertical slice requires the caller to provide a ZIP code and distance. Saved profile defaults will be added with the profile story.
       parameters:
         - name: zip
           in: query
+          required: true
           schema: { $ref: '#/components/schemas/Zip' }
         - name: distance
           in: query
+          required: true
           description: Miles
           schema: { type: integer, minimum: 1, maximum: 100 }
         - name: species

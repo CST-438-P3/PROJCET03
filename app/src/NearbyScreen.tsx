@@ -54,7 +54,7 @@ export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }
                 <Text style={styles.distance}>{pet.distanceMiles} mi</Text>
               </View>
               <Text style={styles.meta}>{pet.species === 'CAT' ? 'Cat' : 'Dog'} · {pet.shelter.name}</Text>
-              {pet.description && <Text style={styles.description}>{pet.description}</Text>}
+              {!!pet.description && <Text style={styles.description}>{pet.description}</Text>}
             </View>
           ))}
         </View>

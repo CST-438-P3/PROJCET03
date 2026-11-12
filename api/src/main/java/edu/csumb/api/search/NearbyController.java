@@ -22,17 +22,24 @@ public class NearbyController {
     @GetMapping("/nearby")
     public ResponseEntity<NearbyResponse> nearby(
             @RequestParam String zip,
-            @RequestParam(defaultValue = "10") int distance,
-            @RequestParam(required = false) Species species) {
+            @RequestParam int distance,
+            @RequestParam(required = false) Species species,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (page < 0 || size < 1 || size > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page must be 0 or greater and size must be between 1 and 50");
+        }
         List<NearbyService.NearbyPet> pets;
         try {
             pets = nearbyService.search(zip, distance, species);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
-        List<NearbyPost> content = pets.stream().map(result -> new NearbyPost(
+        int fromIndex = Math.min(page * size, pets.size());
+        int toIndex = Math.min(fromIndex + size, pets.size());
+        List<NearbyPost> content = pets.subList(fromIndex, toIndex).stream().map(result -> new NearbyPost(
                 result.pet().id(),
-                new ShelterSummary(result.pet().id(), result.pet().shelterName()),
+                new ShelterSummary(result.pet().shelterId(), result.pet().shelterName()),
                 result.pet().name(),
                 result.pet().species(),
                 result.pet().ageMonths(),
@@ -40,8 +47,8 @@ public class NearbyController {
                 result.pet().photoUrl(),
                 "AVAILABLE",
                 Math.round(result.distanceMiles() * 10.0) / 10.0)).toList();
-        int totalPages = content.isEmpty() ? 0 : 1;
-        return ResponseEntity.ok(new NearbyResponse(0, content.size(), content.size(), totalPages, content));
+        int totalPages = pets.isEmpty() ? 0 : (pets.size() + size - 1) / size;
+        return ResponseEntity.ok(new NearbyResponse(page, size, pets.size(), totalPages, content));
     }
 
     public record NearbyResponse(int page, int size, long totalElements, int totalPages,
