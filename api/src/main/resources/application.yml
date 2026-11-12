@@ -21,6 +21,12 @@ app:
   jwt-secret: ${JWT_SECRET}
   jwt-ttl: ${JWT_TTL:PT15M}
   cors-origins: ${CORS_ORIGINS:http://localhost:8081}
+  google:
+    # Empty values make Google sign-in fail closed (401) without stopping the app.
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    token-uri: https://oauth2.googleapis.com/token
+    jwks-uri: https://www.googleapis.com/oauth2/v3/certs
   # Enable only for local/demo environments until OAuth is wired into the app.
   public-nearby: ${PUBLIC_NEARBY:false}
 

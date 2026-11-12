@@ -57,7 +57,9 @@ paths:
         '200': { description: Signed in, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
+        '403': { description: "Google email is not verified (\"Your Google email is not verified\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '409': { description: Verified email already registered via the other provider, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '502': { description: Google sign-in is unavailable (Google error or timeout), content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   /users/me:
     get:
       tags: [users]
