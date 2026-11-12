@@ -34,16 +34,20 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, @Value("${app.public-nearby:false}") boolean publicNearby) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
-                .requestMatchers("/actuator/health/**", "/openapi.yaml", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated())
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers(HttpMethod.POST, "/auth/**").permitAll();
+                auth.requestMatchers("/actuator/health/**", "/openapi.yaml", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                if (publicNearby) {
+                    auth.requestMatchers(HttpMethod.GET, "/posts/nearby").permitAll();
+                }
+                auth.requestMatchers("/admin/**").hasRole("ADMIN");
+                auth.anyRequest().authenticated();
+            })
             .oauth2ResourceServer(rs -> rs.jwt(jwt -> jwt.jwtAuthenticationConverter(rolesConverter())));
         return http.build();
     }
