@@ -25,19 +25,18 @@ class PostRulesTest {
 
     private static final String CAT_EMOJI = "🐱";
 
-    /** Runs checkPost for a request to shelter 1 with only these fields set. */
+    /** Runs checkFields with only these fields set. */
     private static PostRules.CheckedPost check(
             String name, Species species, Integer ageMonths, String description, String photoUrl) {
-        return PostRules.checkPost(
-            new PostRequest(1L, name, species, null, null, null, ageMonths, description, photoUrl));
+        return PostRules.checkFields(name, species, null, null, null, ageMonths, description, photoUrl);
     }
 
-    /** Runs checkPost and returns the message of the error it throws. */
+    /** Runs checkFields and returns the message of the error it throws. */
     private static String errorFor(String name, Species species, Integer ageMonths, String description) {
         return errorFor(name, species, ageMonths, description, null);
     }
 
-    /** Runs checkPost with a photo URL and returns the message of the error it throws. */
+    /** Runs checkFields with a photo URL and returns the message of the error it throws. */
     private static String errorFor(
             String name, Species species, Integer ageMonths, String description, String photoUrl) {
         BadRequestException e = assertThrows(BadRequestException.class,
@@ -79,7 +78,7 @@ class PostRulesTest {
     }
 
     @Test
-    void checkPostReturnsCleanedValues() {
+    void checkFieldsReturnsCleanedValues() {
         PostRules.CheckedPost post = check(
             "  Mochi Bear  ", Species.CAT, 24, "  Calm.  ", "  https://example.com/mochi.jpg  ");
         assertEquals("Mochi Bear", post.name());
@@ -179,19 +178,33 @@ class PostRulesTest {
     }
 
     @Test
-    void missingShelterIsRejected() {
-        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkPost(
+    void createNeedsAShelter() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkCreate(
             new PostRequest(null, "Mochi", Species.CAT, null, null, null, null, null, null)));
         assertEquals("Shelter is required", e.getMessage());
     }
 
     @Test
+    void createListsAMissingShelterTogetherWithFieldProblems() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkCreate(
+            new PostRequest(null, "", Species.CAT, null, null, null, -1, null, null)));
+        assertEquals("Shelter is required; Name is required; Age must be between 0 and 360 months", e.getMessage());
+    }
+
+    @Test
+    void createReturnsTheCleanedFields() {
+        PostRules.CheckedPost post = PostRules.checkCreate(
+            new PostRequest(7L, "  Max  ", Species.DOG, null, null, null, null, null, null));
+        assertEquals("Max", post.name());
+    }
+
+    @Test
     void breedIsTrimmedAndChecked() {
-        PostRules.CheckedPost post = PostRules.checkPost(
-            new PostRequest(1L, "Max", Species.DOG, "  Beagle  ", null, null, null, null, null));
+        PostRules.CheckedPost post = PostRules.checkFields(
+            "Max", Species.DOG, "  Beagle  ", null, null, null, null, null);
         assertEquals("Beagle", post.breed());
-        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkPost(
-            new PostRequest(1L, "Max", Species.DOG, "b".repeat(BREED_MAX_LENGTH + 1), null, null, null, null, null)));
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkFields(
+            "Max", Species.DOG, "b".repeat(BREED_MAX_LENGTH + 1), null, null, null, null, null));
         assertEquals("Breed must be 60 characters or less", e.getMessage());
     }
 
@@ -200,10 +213,9 @@ class PostRulesTest {
         PostRules.CheckedPost missing = check("Max", Species.DOG, null, null, null);
         assertEquals(Sex.UNKNOWN, missing.sex());
         assertNull(missing.size());
-        PostRules.CheckedPost given = PostRules.checkPost(
-            new PostRequest(7L, "Max", Species.DOG, null, Sex.MALE, Size.LARGE, null, null, null));
+        PostRules.CheckedPost given = PostRules.checkFields(
+            "Max", Species.DOG, null, Sex.MALE, Size.LARGE, null, null, null);
         assertEquals(Sex.MALE, given.sex());
         assertEquals(Size.LARGE, given.size());
-        assertEquals(7L, given.shelterId());
     }
 }

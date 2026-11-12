@@ -25,7 +25,7 @@ public class PostService {
 
     /**
      * Saves a new post for a shelter the user is staff for and returns it (S7). Who may post is checked before
-     * the fields, so a user who is not staff gets 403 whatever they send.
+     * the fields, so a user gets 403 for any shelter they are not staff for, even if the fields are wrong.
      */
     @Transactional
     public PostResponse create(long userId, PostRequest request) {
@@ -33,9 +33,9 @@ public class PostService {
         if (shelterId != null && !PostRules.canEdit(shelters.findShelterIdsForStaff(userId), shelterId)) {
             throw new ForbiddenException("You can't post for this shelter");
         }
-        PostRules.CheckedPost checked = PostRules.checkPost(request);
+        PostRules.CheckedPost checked = PostRules.checkCreate(request);
         AdoptionPost post = posts.save(new AdoptionPost(
-            shelters.getReferenceById(checked.shelterId()),
+            shelters.getReferenceById(shelterId),
             checked.name(),
             checked.species(),
             checked.breed(),

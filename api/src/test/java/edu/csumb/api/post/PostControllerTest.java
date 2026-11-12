@@ -136,6 +136,11 @@ class PostControllerTest extends ApiIntegrationTest {
     }
 
     @Test
+    void getWithoutTokenIs401() {
+        given().when().get("/posts/1").then().statusCode(401);
+    }
+
+    @Test
     void missingPostIs404() {
         given().auth().oauth2(staffOfA)
             .when().get("/posts/999")

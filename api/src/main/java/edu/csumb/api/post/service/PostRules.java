@@ -30,8 +30,8 @@ public final class PostRules {
     /** Longest photo URL, the same as maxLength in openapi.yaml. */
     public static final int PHOTO_URL_MAX_LENGTH = 500;
 
-    /** The fields of a post after checkPost, cleaned and ready to save; save these values, not the raw ones. */
-    public record CheckedPost(Long shelterId, String name, Species species, String breed, Sex sex, Size size,
+    /** The fields of a post after a check, cleaned and ready to save; save these values, not the raw ones. */
+    public record CheckedPost(String name, Species species, String breed, Sex sex, Size size,
             Integer ageMonths, String description, String photoUrl) {
     }
 
@@ -39,26 +39,41 @@ public final class PostRules {
     }
 
     /**
-     * Checks every field of a new post and returns them cleaned, or throws BadRequestException listing
-     * every problem at once, separated by "; ".
+     * Checks a new post (POST /posts): the shelter it is for, then every post field. Returns the fields cleaned,
+     * or throws BadRequestException listing every problem at once, separated by "; ".
      */
-    public static CheckedPost checkPost(PostRequest request) {
+    public static CheckedPost checkCreate(PostRequest request) {
         List<String> errors = new ArrayList<>();
-        String name = clean(request.name());
-        String breed = emptyToNull(clean(request.breed()));
-        String description = emptyToNull(clean(request.description()));
-        String photoUrl = emptyToNull(clean(request.photoUrl()));
-        Integer ageMonths = request.ageMonths();
-
         if (request.shelterId() == null) {
             errors.add("Shelter is required");
         }
+        return checkFields(errors, request.name(), request.species(), request.breed(), request.sex(),
+            request.size(), request.ageMonths(), request.description(), request.photoUrl());
+    }
+
+    /**
+     * Checks the fields every post has, for create and for edit (which has no shelter). Returns them cleaned,
+     * or throws BadRequestException listing every problem at once, separated by "; ".
+     */
+    public static CheckedPost checkFields(String name, Species species, String breed, Sex sex, Size size,
+            Integer ageMonths, String description, String photoUrl) {
+        return checkFields(new ArrayList<>(), name, species, breed, sex, size, ageMonths, description, photoUrl);
+    }
+
+    /** Adds every field problem to the errors already found, then throws if there are any or returns the fields. */
+    private static CheckedPost checkFields(List<String> errors, String rawName, Species species, String rawBreed,
+            Sex sex, Size size, Integer ageMonths, String rawDescription, String rawPhotoUrl) {
+        String name = clean(rawName);
+        String breed = emptyToNull(clean(rawBreed));
+        String description = emptyToNull(clean(rawDescription));
+        String photoUrl = emptyToNull(clean(rawPhotoUrl));
+
         if (name == null || name.isEmpty()) {
             errors.add("Name is required");
         } else if (length(name) > NAME_MAX_LENGTH) {
             errors.add("Name must be " + NAME_MAX_LENGTH + " characters or less");
         }
-        if (request.species() == null) {
+        if (species == null) {
             errors.add("Species is required");
         }
         if (breed != null && length(breed) > BREED_MAX_LENGTH) {
@@ -79,8 +94,7 @@ public final class PostRules {
         if (!errors.isEmpty()) {
             throw new BadRequestException(String.join("; ", errors));
         }
-        Sex sex = request.sex() == null ? Sex.UNKNOWN : request.sex();
-        return new CheckedPost(request.shelterId(), name, request.species(), breed, sex, request.size(),
+        return new CheckedPost(name, species, breed, sex == null ? Sex.UNKNOWN : sex, size,
             ageMonths, description, photoUrl);
     }
 
