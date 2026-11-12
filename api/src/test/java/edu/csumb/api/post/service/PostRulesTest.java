@@ -1,6 +1,7 @@
 package edu.csumb.api.post.service;
 
 import static edu.csumb.api.post.service.PostRules.AGE_MAX_MONTHS;
+import static edu.csumb.api.post.service.PostRules.BREED_MAX_LENGTH;
 import static edu.csumb.api.post.service.PostRules.DESCRIPTION_MAX_LENGTH;
 import static edu.csumb.api.post.service.PostRules.NAME_MAX_LENGTH;
 import static edu.csumb.api.post.service.PostRules.PHOTO_URL_MAX_LENGTH;
@@ -12,7 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.csumb.api.error.BadRequestException;
+import edu.csumb.api.post.PostRequest;
 import edu.csumb.api.post.PostStatus;
+import edu.csumb.api.post.Sex;
+import edu.csumb.api.post.Size;
 import edu.csumb.api.post.Species;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -21,40 +25,46 @@ class PostRulesTest {
 
     private static final String CAT_EMOJI = "🐱";
 
-    /** Runs checkPost and returns the message of the error it throws. */
+    /** Runs checkFields with only these fields set. */
+    private static PostRules.CheckedPost check(
+            String name, Species species, Integer ageMonths, String description, String photoUrl) {
+        return PostRules.checkFields(name, species, null, null, null, ageMonths, description, photoUrl);
+    }
+
+    /** Runs checkFields and returns the message of the error it throws. */
     private static String errorFor(String name, Species species, Integer ageMonths, String description) {
         return errorFor(name, species, ageMonths, description, null);
     }
 
-    /** Runs checkPost with a photo URL and returns the message of the error it throws. */
+    /** Runs checkFields with a photo URL and returns the message of the error it throws. */
     private static String errorFor(
             String name, Species species, Integer ageMonths, String description, String photoUrl) {
         BadRequestException e = assertThrows(BadRequestException.class,
-            () -> PostRules.checkPost(name, species, ageMonths, description, photoUrl));
+            () -> check(name, species, ageMonths, description, photoUrl));
         return e.getMessage();
     }
 
     @Test
     void validPostPasses() {
-        assertDoesNotThrow(() -> PostRules.checkPost(
+        assertDoesNotThrow(() -> check(
             "Mochi", Species.CAT, 24, "Calm and friendly.", "https://example.com/mochi.jpg"));
     }
 
     @Test
     void ageAndDescriptionAreOptional() {
-        assertDoesNotThrow(() -> PostRules.checkPost("Max", Species.DOG, null, null, null));
+        assertDoesNotThrow(() -> check("Max", Species.DOG, null, null, null));
     }
 
     @Test
     void edgeValuesPass() {
-        assertDoesNotThrow(() -> PostRules.checkPost(
+        assertDoesNotThrow(() -> check(
             "a".repeat(NAME_MAX_LENGTH), Species.DOG, 0, "b".repeat(DESCRIPTION_MAX_LENGTH), null));
-        assertDoesNotThrow(() -> PostRules.checkPost("Old Boy", Species.DOG, AGE_MAX_MONTHS, "", null));
+        assertDoesNotThrow(() -> check("Old Boy", Species.DOG, AGE_MAX_MONTHS, "", null));
     }
 
     @Test
     void emojiCountsAsOneCharacter() {
-        assertDoesNotThrow(() -> PostRules.checkPost(CAT_EMOJI.repeat(NAME_MAX_LENGTH), Species.CAT, 12, null, null));
+        assertDoesNotThrow(() -> check(CAT_EMOJI.repeat(NAME_MAX_LENGTH), Species.CAT, 12, null, null));
         assertEquals("Name must be 60 characters or less",
             errorFor(CAT_EMOJI.repeat(NAME_MAX_LENGTH + 1), Species.CAT, 12, null));
     }
@@ -62,14 +72,14 @@ class PostRulesTest {
     @Test
     void checkedNameIsTheTrimmedOneThatGetsSaved() {
         String name = "a".repeat(NAME_MAX_LENGTH);
-        PostRules.CheckedPost post = PostRules.checkPost("  " + name + "  ", Species.CAT, 12, null, null);
+        PostRules.CheckedPost post = check("  " + name + "  ", Species.CAT, 12, null, null);
         assertEquals(name, post.name());
         assertEquals(NAME_MAX_LENGTH, post.name().length());
     }
 
     @Test
-    void checkPostReturnsCleanedValues() {
-        PostRules.CheckedPost post = PostRules.checkPost(
+    void checkFieldsReturnsCleanedValues() {
+        PostRules.CheckedPost post = check(
             "  Mochi Bear  ", Species.CAT, 24, "  Calm.  ", "  https://example.com/mochi.jpg  ");
         assertEquals("Mochi Bear", post.name());
         assertEquals(Species.CAT, post.species());
@@ -80,16 +90,16 @@ class PostRulesTest {
 
     @Test
     void emptyOptionalFieldsBecomeNull() {
-        PostRules.CheckedPost post = PostRules.checkPost("Max", Species.DOG, null, "   ", "  ");
+        PostRules.CheckedPost post = check("Max", Species.DOG, null, "   ", "  ");
         assertNull(post.description());
         assertNull(post.photoUrl());
-        assertNull(PostRules.checkPost("Max", Species.DOG, null, null, null).description());
+        assertNull(check("Max", Species.DOG, null, null, null).description());
     }
 
     @Test
     void httpAndHttpsPhotoUrlsPass() {
-        assertDoesNotThrow(() -> PostRules.checkPost("Mochi", Species.CAT, 12, null, "http://example.com/a.png"));
-        assertDoesNotThrow(() -> PostRules.checkPost("Mochi", Species.CAT, 12, null, "HTTPS://example.com/a.png"));
+        assertDoesNotThrow(() -> check("Mochi", Species.CAT, 12, null, "http://example.com/a.png"));
+        assertDoesNotThrow(() -> check("Mochi", Species.CAT, 12, null, "HTTPS://example.com/a.png"));
     }
 
     @Test
@@ -159,5 +169,53 @@ class PostRulesTest {
         assertTrue(PostRules.showInSearch(PostStatus.AVAILABLE));
         assertFalse(PostRules.showInSearch(PostStatus.ADOPTED));
         assertFalse(PostRules.showInSearch(null));
+    }
+
+    @Test
+    void everyProblemIsListedAtOnce() {
+        assertEquals("Name is required; Age must be between 0 and 360 months; Photo URL must be an http or https link",
+            errorFor("  ", Species.CAT, -1, null, "mochi.jpg"));
+    }
+
+    @Test
+    void createNeedsAShelter() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkCreate(
+            new PostRequest(null, "Mochi", Species.CAT, null, null, null, null, null, null)));
+        assertEquals("Shelter is required", e.getMessage());
+    }
+
+    @Test
+    void createListsAMissingShelterTogetherWithFieldProblems() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkCreate(
+            new PostRequest(null, "", Species.CAT, null, null, null, -1, null, null)));
+        assertEquals("Shelter is required; Name is required; Age must be between 0 and 360 months", e.getMessage());
+    }
+
+    @Test
+    void createReturnsTheCleanedFields() {
+        PostRules.CheckedPost post = PostRules.checkCreate(
+            new PostRequest(7L, "  Max  ", Species.DOG, null, null, null, null, null, null));
+        assertEquals("Max", post.name());
+    }
+
+    @Test
+    void breedIsTrimmedAndChecked() {
+        PostRules.CheckedPost post = PostRules.checkFields(
+            "Max", Species.DOG, "  Beagle  ", null, null, null, null, null);
+        assertEquals("Beagle", post.breed());
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkFields(
+            "Max", Species.DOG, "b".repeat(BREED_MAX_LENGTH + 1), null, null, null, null, null));
+        assertEquals("Breed must be 60 characters or less", e.getMessage());
+    }
+
+    @Test
+    void sexIsUnknownWhenMissingAndSizeIsKept() {
+        PostRules.CheckedPost missing = check("Max", Species.DOG, null, null, null);
+        assertEquals(Sex.UNKNOWN, missing.sex());
+        assertNull(missing.size());
+        PostRules.CheckedPost given = PostRules.checkFields(
+            "Max", Species.DOG, null, Sex.MALE, Size.LARGE, null, null, null);
+        assertEquals(Sex.MALE, given.sex());
+        assertEquals(Size.LARGE, given.size());
     }
 }
