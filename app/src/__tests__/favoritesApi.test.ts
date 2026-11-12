@@ -9,20 +9,41 @@ beforeEach(() => {
   fakeApi.mockReset();
 });
 
-test('getFavorites calls GET /favorites and returns the posts inside the page', async () => {
-  const savedPost = {
-    id: 1,
-    shelter: { id: 1, name: 'Monterey County Animal Services' },
-    name: 'Luna',
-    species: 'CAT',
-    status: 'AVAILABLE',
-  };
-  fakeApi.mockResolvedValue({ content: [savedPost] });
+// A fake page with one saved post, shaped like the API's PostPage
+const pageWithLuna = {
+  page: 0,
+  size: 20,
+  totalElements: 1,
+  totalPages: 1,
+  content: [
+    {
+      id: 1,
+      shelter: { id: 1, name: 'Monterey County Animal Services' },
+      name: 'Luna',
+      species: 'CAT',
+      status: 'AVAILABLE',
+      favorite: true,
+    },
+  ],
+};
 
-  const favorites = await getFavorites();
+test('getFavorites asks for the first page by default and returns the whole page', async () => {
+  fakeApi.mockResolvedValue(pageWithLuna);
 
-  expect(fakeApi).toHaveBeenCalledWith('/favorites');
-  expect(favorites).toEqual([savedPost]);
+  const favoritesPage = await getFavorites();
+
+  expect(fakeApi).toHaveBeenCalledWith('/favorites?page=0&size=20');
+  // The page info is kept, so a screen can see if there are more pages
+  expect(favoritesPage).toEqual(pageWithLuna);
+});
+
+test('getFavorites can ask for a later page and a different page size', async () => {
+  fakeApi.mockResolvedValue({ ...pageWithLuna, page: 2, size: 5 });
+
+  const favoritesPage = await getFavorites(2, 5);
+
+  expect(fakeApi).toHaveBeenCalledWith('/favorites?page=2&size=5');
+  expect(favoritesPage.page).toBe(2);
 });
 
 test('saveFavorite sends a PUT for that post', async () => {
