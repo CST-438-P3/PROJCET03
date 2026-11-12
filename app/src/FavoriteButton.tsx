@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { color, font } from './theme';
 import { removeFavorite, saveFavorite } from './favoritesApi';
@@ -7,7 +7,7 @@ import { removeFavorite, saveFavorite } from './favoritesApi';
 type FavoriteButtonProps = {
   postId: number;
   petName: string;
-  // Whether the pet is already saved when the screen first loads
+ // Whether the pet is already saved.
   startsSaved?: boolean;
   // These let the tests pass in fake data version.
   // In the real app we leave them out and the real API functions are used.
@@ -15,7 +15,7 @@ type FavoriteButtonProps = {
   removePost?: (postId: number) => Promise<void>;
 };
 
-/** A heart button. Tap it to save a pet to favorites, tap it again to remove it (S8). */
+// A heart button. Tap it to save a pet to favorites, tap it again to remove it (S8).
 export function FavoriteButton({
   postId,
   petName,
@@ -26,6 +26,13 @@ export function FavoriteButton({
   const [isSaved, setIsSaved] = useState(startsSaved);
   const [isWaiting, setIsWaiting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // useState only reads startsSaved the first time the button shows up.
+  // If the screen reloads its list and the post's favorite value changes,
+  // this copies the new value in so the heart stays up to date.
+  useEffect(() => {
+    setIsSaved(startsSaved);
+  }, [startsSaved]);
 
   async function handlePress() {
     setIsWaiting(true);

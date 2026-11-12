@@ -27,6 +27,17 @@ test('a pet that starts saved shows the filled heart', async () => {
   expect(screen.getByText('♥')).toBeTruthy();
 });
 
+test('the heart updates when the screen reloads and the saved value changes', async () => {
+  // First the list says Max is not saved
+  const view = await render(<FavoriteButton postId={2} petName="Max" startsSaved={false} />);
+  expect(heartButton('Save Max to favorites')).toBeTruthy();
+
+  // Then the list reloads (maybe Max was saved on another device) and says he is saved
+  await view.rerender(<FavoriteButton postId={2} petName="Max" startsSaved />);
+
+  await waitFor(() => expect(heartButton('Remove Max from favorites')).toBeTruthy());
+});
+
 test('the button is disabled while waiting for the server', async () => {
   // A save that doesn't finish until we call finishSaving()
   let finishSaving = () => {};
