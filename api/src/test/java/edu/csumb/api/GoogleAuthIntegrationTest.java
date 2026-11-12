@@ -15,6 +15,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import edu.csumb.api.user.Identity;
+import edu.csumb.api.user.IdentityRepository;
 import edu.csumb.api.user.Provider;
 import edu.csumb.api.user.User;
 import edu.csumb.api.user.UserRepository;
@@ -85,10 +87,14 @@ class GoogleAuthIntegrationTest {
     UserRepository users;
 
     @Autowired
+    IdentityRepository identities;
+
+    @Autowired
     JwtDecoder apiJwtDecoder;
 
     @BeforeEach
     void reset() {
+        identities.deleteAll();
         users.deleteAll();
         tokenStatus = 200;
         jwksStatus = 200;
@@ -105,9 +111,8 @@ class GoogleAuthIntegrationTest {
                 .body("user.role", equalTo("USER"))
                 .extract().jsonPath();
 
-        User saved = users.findByEmail(EMAIL).orElseThrow();
-        assertThat(saved.getProvider()).isEqualTo(Provider.GOOGLE);
-        assertThat(saved.getProviderUserId()).isEqualTo(SUBJECT);
+        User saved = identities.findByProviderAndProviderUserId(Provider.GOOGLE, SUBJECT).orElseThrow().getUser();
+        assertThat(saved.getEmail()).isEqualTo(EMAIL);
         assertThat(body.getLong("user.id")).isEqualTo(saved.getId());
 
         Jwt token = apiJwtDecoder.decode(body.getString("token"));
@@ -123,6 +128,7 @@ class GoogleAuthIntegrationTest {
         signIn().statusCode(200);
         signIn().statusCode(200);
         assertThat(users.count()).isEqualTo(1);
+        assertThat(identities.count()).isEqualTo(1);
     }
 
     @Test
@@ -139,14 +145,14 @@ class GoogleAuthIntegrationTest {
 
     @Test
     void emailRegisteredWithGitHubIsRejected() {
-        users.save(new User(EMAIL, "Ada", Provider.GITHUB, "gh-1"));
+        addGitHubUser();
         signIn().statusCode(409).body("detail", equalTo("This email is registered with GitHub"));
         assertThat(users.count()).isEqualTo(1);
     }
 
     @Test
     void emailMatchIgnoresCase() {
-        users.save(new User(EMAIL, "Ada", Provider.GITHUB, "gh-1"));
+        addGitHubUser();
         googleReturns(idToken(GOOGLE_KEY, claims -> claims.claim("email", "Adopter@Example.COM")));
         signIn().statusCode(409);
         assertThat(users.count()).isEqualTo(1);
@@ -294,5 +300,9 @@ class GoogleAuthIntegrationTest {
         try (var out = exchange.getResponseBody()) {
             out.write(bytes);
         }
+    }
+
+    private void addGitHubUser() {
+        identities.save(new Identity(users.save(new User(EMAIL, "Ada")), Provider.GITHUB, "gh-1"));
     }
 }

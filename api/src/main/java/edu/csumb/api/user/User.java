@@ -18,18 +18,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
-    @Column(name = "display_name", nullable = false)
+    @Column(name = "display_name")
     private String displayName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Provider provider;
-
-    @Column(name = "provider_user_id", nullable = false)
-    private String providerUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -41,11 +34,9 @@ public class User {
     protected User() {
     }
 
-    public User(String email, String displayName, Provider provider, String providerUserId) {
+    public User(String email, String displayName) {
         this.email = email;
         this.displayName = displayName;
-        this.provider = provider;
-        this.providerUserId = providerUserId;
     }
 
     public Long getId() {
@@ -58,14 +49,6 @@ public class User {
 
     public String getDisplayName() {
         return displayName;
-    }
-
-    public Provider getProvider() {
-        return provider;
-    }
-
-    public String getProviderUserId() {
-        return providerUserId;
     }
 
     public Role getRole() {

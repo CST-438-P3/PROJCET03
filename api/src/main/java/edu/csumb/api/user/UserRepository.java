@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByProviderAndProviderUserId(Provider provider, String providerUserId);
-
-    Optional<User> findByEmail(String email);
+    /** Matches the unique index on lower(email). */
+    Optional<User> findByEmailIgnoreCase(String email);
 }

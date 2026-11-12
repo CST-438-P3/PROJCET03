@@ -27,6 +27,8 @@ app:
     client-secret: ${GOOGLE_CLIENT_SECRET:}
     token-uri: https://oauth2.googleapis.com/token
     jwks-uri: https://www.googleapis.com/oauth2/v3/certs
+  # Enable only for local/demo environments until OAuth is wired into the app.
+  public-nearby: ${PUBLIC_NEARBY:false}
 
 management:
   endpoints:

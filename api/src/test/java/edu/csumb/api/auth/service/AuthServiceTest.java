@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import edu.csumb.api.user.Identity;
+import edu.csumb.api.user.IdentityRepository;
 import edu.csumb.api.user.Provider;
 import edu.csumb.api.user.User;
 import edu.csumb.api.user.UserRepository;
@@ -18,6 +20,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.server.ResponseStatusException;
 
 /** The double-tap race on a first sign-in, which an integration test can't hit reliably. */
@@ -26,13 +29,15 @@ class AuthServiceTest {
     private static final String EMAIL = "a@example.com";
 
     private final UserRepository users = mock(UserRepository.class);
+    private final IdentityRepository identities = mock(IdentityRepository.class);
     private final JwtEncoder encoder = mock(JwtEncoder.class);
-    private final AuthService service = new AuthService(users, encoder, Duration.ofMinutes(15));
+    private final AuthService service = new AuthService(
+            users, identities, TransactionOperations.withoutTransaction(), encoder, Duration.ofMinutes(15));
 
     @BeforeEach
     void loseTheInsertRace() {
-        when(users.findByProviderAndProviderUserId(Provider.GOOGLE, "sub")).thenReturn(Optional.empty());
-        when(users.findByEmail(EMAIL)).thenReturn(Optional.empty());
+        when(identities.findByProviderAndProviderUserId(Provider.GOOGLE, "sub")).thenReturn(Optional.empty());
+        when(users.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.empty());
         when(users.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate"));
         when(encoder.encode(any())).thenReturn(Jwt.withTokenValue("jwt")
                 .header("alg", "HS256")
@@ -43,22 +48,28 @@ class AuthServiceTest {
 
     @Test
     void sameAccountWinningTheRaceSignsIn() {
-        User winner = new User(EMAIL, "A", Provider.GOOGLE, "sub");
-        when(users.findByProviderAndProviderUserId(Provider.GOOGLE, "sub"))
+        User winner = new User(EMAIL, "A");
+        when(identities.findByProviderAndProviderUserId(Provider.GOOGLE, "sub"))
                 .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(winner));
+                .thenReturn(Optional.of(new Identity(winner, Provider.GOOGLE, "sub")));
 
         assertThat(service.signIn(Provider.GOOGLE, "sub", EMAIL, "A").user()).isSameAs(winner);
     }
 
     @Test
     void otherProviderWinningTheRaceConflicts() {
-        when(users.findByEmail(EMAIL))
+        User other = new User(EMAIL, "A");
+        when(users.findByEmailIgnoreCase(EMAIL))
                 .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(new User(EMAIL, "A", Provider.GITHUB, "gh")));
+                .thenReturn(Optional.of(other));
+        when(identities.findFirstByUserOrderById(other))
+                .thenReturn(Optional.of(new Identity(other, Provider.GITHUB, "gh")));
 
         assertThatThrownBy(() -> service.signIn(Provider.GOOGLE, "sub", EMAIL, "A"))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
-                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+                        e -> {
+                            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                            assertThat(e.getReason()).isEqualTo("This email is registered with GitHub");
+                        });
     }
 }

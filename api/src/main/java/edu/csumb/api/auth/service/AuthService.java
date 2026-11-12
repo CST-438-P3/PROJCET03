@@ -1,5 +1,7 @@
 package edu.csumb.api.auth.service;
 
+import edu.csumb.api.user.Identity;
+import edu.csumb.api.user.IdentityRepository;
 import edu.csumb.api.user.Provider;
 import edu.csumb.api.user.User;
 import edu.csumb.api.user.UserRepository;
@@ -7,6 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -16,6 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,43 +34,58 @@ public class AuthService {
     }
 
     private final UserRepository users;
+    private final IdentityRepository identities;
+    private final TransactionOperations tx;
     private final JwtEncoder jwtEncoder;
     private final Duration jwtTtl;
 
-    public AuthService(UserRepository users, JwtEncoder jwtEncoder, @Value("${app.jwt-ttl}") Duration jwtTtl) {
+    public AuthService(UserRepository users, IdentityRepository identities, TransactionOperations tx,
+            JwtEncoder jwtEncoder, @Value("${app.jwt-ttl}") Duration jwtTtl) {
         this.users = users;
+        this.identities = identities;
+        this.tx = tx;
         this.jwtEncoder = jwtEncoder;
         this.jwtTtl = jwtTtl;
     }
 
     /**
-     * Not transactional on purpose: a failed insert must not poison the transaction
+     * Only the insert is transactional: a failed insert must not poison the transaction
      * that the lost-race lookup runs in.
      */
     public SignedIn signIn(Provider provider, String providerUserId, String email, String name) {
         String cleanEmail = email.trim().toLowerCase(Locale.ROOT);
-        User user = users.findByProviderAndProviderUserId(provider, providerUserId)
+        User user = findUser(provider, providerUserId)
                 .orElseGet(() -> create(provider, providerUserId, cleanEmail, name));
         return new SignedIn(issueToken(user), user);
     }
 
+    private Optional<User> findUser(Provider provider, String providerUserId) {
+        return identities.findByProviderAndProviderUserId(provider, providerUserId).map(Identity::getUser);
+    }
+
     private User create(Provider provider, String providerUserId, String email, String name) {
-        users.findByEmail(email).ifPresent(existing -> {
+        users.findByEmailIgnoreCase(email).ifPresent(existing -> {
             throw emailTaken(existing);
         });
         try {
-            return users.saveAndFlush(new User(email, displayName(name, email), provider, providerUserId));
+            return tx.execute(status -> {
+                User user = users.saveAndFlush(new User(email, displayName(name, email)));
+                identities.saveAndFlush(new Identity(user, provider, providerUserId));
+                return user;
+            });
         } catch (DataIntegrityViolationException lostRace) {
-            return users.findByProviderAndProviderUserId(provider, providerUserId)
-                    .orElseThrow(() -> users.findByEmail(email)
-                            .<RuntimeException>map(AuthService::emailTaken)
+            return findUser(provider, providerUserId)
+                    .orElseThrow(() -> users.findByEmailIgnoreCase(email)
+                            .<RuntimeException>map(this::emailTaken)
                             .orElse(lostRace));
         }
     }
 
-    private static ResponseStatusException emailTaken(User existing) {
-        return new ResponseStatusException(
-                HttpStatus.CONFLICT, "This email is registered with " + existing.getProvider().label());
+    private ResponseStatusException emailTaken(User existing) {
+        String where = identities.findFirstByUserOrderById(existing)
+                .map(identity -> identity.getProvider().label())
+                .orElse("another account");
+        return new ResponseStatusException(HttpStatus.CONFLICT, "This email is registered with " + where);
     }
 
     private static String displayName(String name, String email) {

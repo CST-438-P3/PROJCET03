@@ -218,13 +218,15 @@ paths:
     get:
       tags: [search]
       summary: Available posts within a distance of a ZIP code, nearest first (S5)
-      description: zip and distance default to the user's saved profile values.
+      description: This vertical slice requires the caller to provide a ZIP code and distance. Saved profile defaults will be added with the profile story.
       parameters:
         - name: zip
           in: query
+          required: true
           schema: { $ref: '#/components/schemas/Zip' }
         - name: distance
           in: query
+          required: true
           description: Miles
           schema: { type: integer, minimum: 1, maximum: 100 }
         - name: species
@@ -400,11 +402,11 @@ components:
         user: { $ref: '#/components/schemas/User' }
     User:
       type: object
-      required: [id, email, displayName, role]
+      required: [id, email, role]
       properties:
         id: { type: integer, format: int64 }
         email: { type: string, format: email }
-        displayName: { type: string }
+        displayName: { type: string, description: Missing when the sign-in provider gave no name. }
         role: { type: string, enum: [USER, ADMIN] }
         zip: { oneOf: [{ $ref: '#/components/schemas/Zip' }, { type: 'null' }] }
         radiusMiles: { type: integer, minimum: 1, maximum: 100 }
@@ -424,6 +426,12 @@ components:
     PostStatus:
       type: string
       enum: [AVAILABLE, ADOPTED]
+    Sex:
+      type: string
+      enum: [MALE, FEMALE, UNKNOWN]
+    Size:
+      type: string
+      enum: [SMALL, MEDIUM, LARGE]
     Shelter:
       type: object
       required: [id, name, address, zip]
@@ -437,6 +445,10 @@ components:
     ShelterCreate:
       type: object
       required: [name, address, zip]
+      description: Needs a phone or an email (or both), so adopters can reach the shelter.
+      anyOf:
+        - required: [phone]
+        - required: [email]
       properties:
         name: { type: string, minLength: 1, maxLength: 100 }
         address: { type: string, minLength: 1, maxLength: 200 }
@@ -457,6 +469,9 @@ components:
         shelter: { $ref: '#/components/schemas/ShelterSummary' }
         name: { type: string }
         species: { $ref: '#/components/schemas/Species' }
+        breed: { type: string }
+        sex: { $ref: '#/components/schemas/Sex' }
+        size: { $ref: '#/components/schemas/Size' }
         ageMonths: { type: integer, minimum: 0 }
         description: { type: string }
         photoUrl: { type: string, format: uri, maxLength: 500, description: Must be an http or https link. }
@@ -473,6 +488,9 @@ components:
         shelterId: { type: integer, format: int64 }
         name: { type: string, minLength: 1, maxLength: 60, pattern: '\S', description: Spaces at the start and end are removed. Must not be only spaces. }
         species: { $ref: '#/components/schemas/Species' }
+        breed: { type: string, maxLength: 60, description: Spaces at the ends are removed. Empty means unknown. }
+        sex: { $ref: '#/components/schemas/Sex', description: UNKNOWN when missing. }
+        size: { $ref: '#/components/schemas/Size' }
         ageMonths: { type: integer, minimum: 0, maximum: 360 }
         description: { type: string, maxLength: 2000, description: Spaces at the ends are removed. Empty means none. }
         photoUrl: { type: string, format: uri, maxLength: 500, description: Must be an http or https link. }
@@ -482,6 +500,9 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 60, pattern: '\S', description: Spaces at the start and end are removed. Must not be only spaces. }
         species: { $ref: '#/components/schemas/Species' }
+        breed: { type: string, maxLength: 60, description: Spaces at the ends are removed. Empty means unknown. }
+        sex: { $ref: '#/components/schemas/Sex', description: UNKNOWN when missing. }
+        size: { $ref: '#/components/schemas/Size' }
         ageMonths: { type: integer, minimum: 0, maximum: 360 }
         description: { type: string, maxLength: 2000, description: Spaces at the ends are removed. Empty means none. }
         photoUrl: { type: string, format: uri, maxLength: 500, description: Must be an http or https link. }
@@ -494,13 +515,17 @@ components:
         postId: { type: integer, format: int64 }
         postName: { type: string }
         fromDisplayName: { type: string }
+        fromEmail:
+          type: string
+          format: email
+          description: Shown to shelter staff in their inbox so they can answer by email. There are no in-app replies.
         message: { type: string }
         createdAt: { type: string, format: date-time }
     InquiryCreate:
       type: object
       required: [message]
       properties:
-        message: { type: string, minLength: 1, maxLength: 1000 }
+        message: { type: string, minLength: 1, maxLength: 1000, pattern: '\S', description: Must not be only spaces. }
     PageInfo:
       type: object
       required: [page, size, totalElements, totalPages]
