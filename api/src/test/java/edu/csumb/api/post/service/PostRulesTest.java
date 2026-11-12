@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.csumb.api.error.BadRequestException;
 import edu.csumb.api.post.PostStatus;
 import edu.csumb.api.post.Species;
 import java.util.Set;
@@ -28,7 +29,7 @@ class PostRulesTest {
     /** Runs checkPost with a photo URL and returns the message of the error it throws. */
     private static String errorFor(
             String name, Species species, Integer ageMonths, String description, String photoUrl) {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        BadRequestException e = assertThrows(BadRequestException.class,
             () -> PostRules.checkPost(name, species, ageMonths, description, photoUrl));
         return e.getMessage();
     }
