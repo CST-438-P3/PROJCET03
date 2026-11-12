@@ -1,5 +1,6 @@
 package edu.csumb.api.post.service;
 
+import edu.csumb.api.error.BadRequestException;
 import edu.csumb.api.post.PostStatus;
 import edu.csumb.api.post.Species;
 import java.net.URI;
@@ -28,35 +29,35 @@ public final class PostRules {
     private PostRules() {
     }
 
-    /** Checks the fields of a new or edited post and returns them cleaned, or throws IllegalArgumentException. */
+    /** Checks the fields of a new or edited post and returns them cleaned, or throws BadRequestException. */
     public static CheckedPost checkPost(
             String name, Species species, Integer ageMonths, String description, String photoUrl) {
         String cleanName = clean(name);
         if (cleanName == null || cleanName.isEmpty()) {
-            throw new IllegalArgumentException("Name is required");
+            throw new BadRequestException("Name is required");
         }
         if (length(cleanName) > NAME_MAX_LENGTH) {
-            throw new IllegalArgumentException("Name must be " + NAME_MAX_LENGTH + " characters or less");
+            throw new BadRequestException("Name must be " + NAME_MAX_LENGTH + " characters or less");
         }
         if (species == null) {
-            throw new IllegalArgumentException("Species is required");
+            throw new BadRequestException("Species is required");
         }
         if (ageMonths != null && (ageMonths < 0 || ageMonths > AGE_MAX_MONTHS)) {
-            throw new IllegalArgumentException("Age must be between 0 and " + AGE_MAX_MONTHS + " months");
+            throw new BadRequestException("Age must be between 0 and " + AGE_MAX_MONTHS + " months");
         }
         String cleanDescription = emptyToNull(clean(description));
         if (cleanDescription != null && length(cleanDescription) > DESCRIPTION_MAX_LENGTH) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                 "Description must be " + DESCRIPTION_MAX_LENGTH + " characters or less");
         }
         String cleanPhotoUrl = emptyToNull(clean(photoUrl));
         if (cleanPhotoUrl != null) {
             if (length(cleanPhotoUrl) > PHOTO_URL_MAX_LENGTH) {
-                throw new IllegalArgumentException(
+                throw new BadRequestException(
                     "Photo URL must be " + PHOTO_URL_MAX_LENGTH + " characters or less");
             }
             if (!isWebLink(cleanPhotoUrl)) {
-                throw new IllegalArgumentException("Photo URL must be an http or https link");
+                throw new BadRequestException("Photo URL must be an http or https link");
             }
         }
         return new CheckedPost(cleanName, species, ageMonths, cleanDescription, cleanPhotoUrl);
