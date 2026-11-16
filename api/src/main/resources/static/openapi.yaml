@@ -298,6 +298,7 @@ paths:
     post:
       tags: [admin]
       summary: Create a shelter (S10)
+      description: The ZIP code must be one the API knows (in zip_codes), or the answer is 400.
       requestBody:
         required: true
         content:
@@ -327,7 +328,7 @@ paths:
         '404': { $ref: '#/components/responses/Problem' }
     delete:
       tags: [admin]
-      summary: Delete a shelter and its posts (S10)
+      summary: Delete a shelter with its staff and posts (S10)
       responses:
         '204': { description: Deleted }
         '401': { $ref: '#/components/responses/Problem' }
@@ -343,6 +344,7 @@ paths:
     put:
       tags: [admin]
       summary: Grant a user the shelter role for this shelter (S10)
+      description: Granting twice is fine.
       responses:
         '204': { description: Granted }
         '401': { $ref: '#/components/responses/Problem' }
@@ -351,6 +353,7 @@ paths:
     delete:
       tags: [admin]
       summary: Revoke a user's shelter role for this shelter (S10)
+      description: Revoking a user who is not staff is fine.
       responses:
         '204': { description: Revoked }
         '401': { $ref: '#/components/responses/Problem' }
@@ -454,7 +457,7 @@ components:
         address: { type: string, minLength: 1, maxLength: 200 }
         zip: { $ref: '#/components/schemas/Zip' }
         phone: { type: string, maxLength: 30 }
-        email: { type: string, format: email }
+        email: { type: string, format: email, maxLength: 320 }
     ShelterSummary:
       type: object
       required: [id, name]
