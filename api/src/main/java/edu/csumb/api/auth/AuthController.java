@@ -1,6 +1,7 @@
 package edu.csumb.api.auth;
 
 import edu.csumb.api.auth.service.AuthService;
+import edu.csumb.api.auth.service.GithubAuthClient;
 import edu.csumb.api.auth.service.GoogleAuthClient;
 import edu.csumb.api.user.Provider;
 import edu.csumb.api.user.Role;
@@ -29,10 +30,12 @@ public class AuthController {
     }
 
     private final GoogleAuthClient google;
+    private final GithubAuthClient github;
     private final AuthService authService;
 
-    public AuthController(GoogleAuthClient google, AuthService authService) {
+    public AuthController(GoogleAuthClient google, GithubAuthClient github, AuthService authService) {
         this.google = google;
+        this.github = github;
         this.authService = authService;
     }
 
@@ -40,6 +43,13 @@ public class AuthController {
     public SessionResponse google(@Valid @RequestBody CodeExchange body) {
         var profile = google.fetchProfile(body.code(), body.codeVerifier(), body.redirectUri());
         var signedIn = authService.signIn(Provider.GOOGLE, profile.subject(), profile.email(), profile.name());
+        return new SessionResponse(signedIn.token(), UserResponse.from(signedIn.user()));
+    }
+
+    @PostMapping("/github")
+    public SessionResponse github(@Valid @RequestBody CodeExchange body) {
+        var profile = github.fetchProfile(body.code(), body.codeVerifier(), body.redirectUri());
+        var signedIn = authService.signIn(Provider.GITHUB, profile.id(), profile.email(), profile.name());
         return new SessionResponse(signedIn.token(), UserResponse.from(signedIn.user()));
     }
 }
