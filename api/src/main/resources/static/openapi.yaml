@@ -203,15 +203,15 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
-        '403': { $ref: '#/components/responses/Problem' }
+        '403': { description: "Not staff for this post's shelter (\"You can't edit this post\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '404': { $ref: '#/components/responses/Problem' }
     delete:
       tags: [posts]
-      summary: Delete a post (S7, staff of the post's shelter only)
+      summary: Delete a post and its favorites and inquiries (S7, staff of the post's shelter only)
       responses:
         '204': { description: Deleted }
         '401': { $ref: '#/components/responses/Problem' }
-        '403': { $ref: '#/components/responses/Problem' }
+        '403': { description: "Not staff for this post's shelter (\"You can't delete this post\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '404': { $ref: '#/components/responses/Problem' }
 
   /posts/nearby:

@@ -3,6 +3,7 @@ package edu.csumb.api.post.service;
 import edu.csumb.api.error.BadRequestException;
 import edu.csumb.api.post.PostRequest;
 import edu.csumb.api.post.PostStatus;
+import edu.csumb.api.post.PostUpdateRequest;
 import edu.csumb.api.post.Sex;
 import edu.csumb.api.post.Size;
 import edu.csumb.api.post.Species;
@@ -52,8 +53,30 @@ public final class PostRules {
     }
 
     /**
-     * Checks the fields every post has, for create and for edit (which has no shelter). Returns them cleaned,
-     * or throws BadRequestException listing every problem at once, separated by "; ".
+     * Checks an edited post (PUT /posts/{postId}): its status, then every post field. Returns the fields cleaned
+     * (the status is an enum and needs no cleaning, so it is saved as sent), or throws BadRequestException listing
+     * every problem at once, separated by "; ".
+     */
+    public static CheckedPost checkUpdate(PostUpdateRequest request) {
+        List<String> errors = new ArrayList<>();
+        if (request.status() == null) {
+            errors.add("Status is required");
+        }
+        return checkFields(errors, request.name(), request.species(), request.breed(), request.sex(),
+            request.size(), request.ageMonths(), request.description(), request.photoUrl());
+    }
+
+    /** Checks the new status of PATCH /posts/{postId}. Returns it, or throws BadRequestException if it is missing. */
+    public static PostStatus checkStatus(PostStatus status) {
+        if (status == null) {
+            throw new BadRequestException("Status is required");
+        }
+        return status;
+    }
+
+    /**
+     * Checks only the fields every post has, without the shelter check of checkCreate or the status check of
+     * checkUpdate. Returns them cleaned, or throws BadRequestException listing every problem at once.
      */
     public static CheckedPost checkFields(String name, Species species, String breed, Sex sex, Size size,
             Integer ageMonths, String description, String photoUrl) {

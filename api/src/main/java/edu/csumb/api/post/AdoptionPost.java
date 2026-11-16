@@ -76,6 +76,25 @@ public class AdoptionPost {
         this.status = PostStatus.AVAILABLE;
     }
 
+    /** Replaces every field a staff member can edit, with values that PostRules already checked (S7). */
+    public void replace(String name, Species species, String breed, Sex sex, Size size, Integer ageMonths,
+            String description, String photoUrl, PostStatus status) {
+        this.name = name;
+        this.species = species;
+        this.breed = breed;
+        this.sex = sex;
+        this.size = size;
+        this.ageMonths = ageMonths;
+        this.description = description;
+        this.photoUrl = photoUrl;
+        this.status = status;
+    }
+
+    /** Changes only the status, e.g. to ADOPTED (S7). */
+    public void changeStatus(PostStatus status) {
+        this.status = status;
+    }
+
     /**
      * Sets the creation time when the post is first saved, in UTC and cut to microseconds like Postgres returns
      * it, so the create response shows the same time as later reads. updated_at is kept by a database trigger.
