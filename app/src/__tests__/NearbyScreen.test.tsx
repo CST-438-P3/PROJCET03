@@ -29,3 +29,13 @@ test('shows an error when the search fails', async () => {
   await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
   expect(await view.findByRole('alert')).toHaveTextContent("We couldn't load nearby pets. Please try again.");
 });
+
+test('tapping a pet opens it', async () => {
+  const onOpenPet = jest.fn();
+  const view = await render(<NearbyScreen loadPets={async () => pets} onOpenPet={onOpenPet} />);
+  await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
+
+  await fireEvent.press(await view.findByText('Luna'));
+
+  expect(onOpenPet).toHaveBeenCalledWith(pets[0]);
+});

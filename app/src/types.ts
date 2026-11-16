@@ -7,6 +7,12 @@ export type Species = 'CAT' | 'DOG';
 // AVAILABLE or ADOPTED, the PostStatus schema.
 export type PostStatus = 'AVAILABLE' | 'ADOPTED';
 
+// MALE, FEMALE or UNKNOWN, the Sex schema.
+export type Sex = 'MALE' | 'FEMALE' | 'UNKNOWN';
+
+// SMALL, MEDIUM or LARGE, the Size schema.
+export type Size = 'SMALL' | 'MEDIUM' | 'LARGE';
+
 // The shelter's id and name, shown on each post. The ShelterSummary schema.
 export interface ShelterSummary {
   id: number;
@@ -19,6 +25,9 @@ export interface Post {
   shelter: ShelterSummary;
   name: string;
   species: Species;
+  breed?: string;
+  sex?: Sex;
+  size?: Size;
   ageMonths?: number;
   description?: string;
   photoUrl?: string;
