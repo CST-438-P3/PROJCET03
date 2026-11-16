@@ -39,3 +39,14 @@ test('tapping a pet opens it', async () => {
 
   expect(onOpenPet).toHaveBeenCalledWith(pets[0]);
 });
+
+test('the Admin button shows only when onOpenAdmin is given', async () => {
+  const onOpenAdmin = jest.fn();
+  const view = await render(<NearbyScreen loadPets={async () => []} onOpenAdmin={onOpenAdmin} />);
+
+  await fireEvent.press(view.getByRole('button', { name: 'Admin' }));
+  expect(onOpenAdmin).toHaveBeenCalled();
+
+  await view.rerender(<NearbyScreen loadPets={async () => []} />);
+  expect(view.queryByRole('button', { name: 'Admin' })).toBeNull();
+});
