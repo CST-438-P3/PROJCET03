@@ -1,6 +1,7 @@
 package edu.csumb.api.shelter;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
@@ -62,7 +63,7 @@ class AdminShelterControllerTest extends ApiIntegrationTest {
 
     @Test
     void adminCreatesAShelter() {
-        int id = json(SHELTER).auth().oauth2(admin)
+        var created = json(SHELTER).auth().oauth2(admin)
             .when().post("/admin/shelters")
             .then().statusCode(201)
             .body("name", equalTo("Monterey Shelter"))
@@ -70,7 +71,9 @@ class AdminShelterControllerTest extends ApiIntegrationTest {
             .body("zip", equalTo("93940"))
             .body("email", equalTo("hi@monterey.org"))
             .body("$", not(hasKey("phone")))
-            .extract().path("id");
+            .extract();
+        int id = created.path("id");
+        assertEquals("/shelters/" + id, created.header("Location"));
         assertEquals("Monterey Shelter",
             jdbc.queryForObject("SELECT name FROM shelters WHERE id = ?", String.class, id));
     }
@@ -178,6 +181,30 @@ class AdminShelterControllerTest extends ApiIntegrationTest {
     }
 
     @Test
+    void adminListsStaffSortedByEmail() {
+        long zoe = addUser("zoe@example.com");
+        addStaff(zoe, shelterA);
+        addStaff(user, shelterA);
+        jdbc.update("UPDATE users SET display_name = NULL WHERE id = ?", zoe);
+
+        given().auth().oauth2(admin)
+            .when().get("/admin/shelters/%d/staff".formatted(shelterA))
+            .then().statusCode(200)
+            .body("email", contains("staff@example.com", "zoe@example.com"))
+            .body("[0].id", equalTo((int) user))
+            .body("[0].displayName", equalTo("staff@example.com"))
+            .body("[1]", not(hasKey("displayName")));
+    }
+
+    @Test
+    void staffListOfMissingShelterIs404() {
+        given().auth().oauth2(admin)
+            .when().get("/admin/shelters/999/staff")
+            .then().statusCode(404)
+            .body("detail", equalTo("Shelter not found"));
+    }
+
+    @Test
     void staffChangesForAMissingShelterOrUserAre404() {
         given().auth().oauth2(admin)
             .when().put("/admin/shelters/999/staff/" + user)
@@ -200,6 +227,7 @@ class AdminShelterControllerTest extends ApiIntegrationTest {
         json(SHELTER).auth().oauth2(notAdmin).when().post("/admin/shelters").then().statusCode(403);
         json(SHELTER).auth().oauth2(notAdmin).when().put("/admin/shelters/" + shelterA).then().statusCode(403);
         given().auth().oauth2(notAdmin).when().delete("/admin/shelters/" + shelterA).then().statusCode(403);
+        given().auth().oauth2(notAdmin).when().get("/admin/shelters/%d/staff".formatted(shelterA)).then().statusCode(403);
         given().auth().oauth2(notAdmin).when().put(staffPath).then().statusCode(403);
         given().auth().oauth2(notAdmin).when().delete(staffPath).then().statusCode(403);
 
@@ -214,6 +242,7 @@ class AdminShelterControllerTest extends ApiIntegrationTest {
         json(SHELTER).when().post("/admin/shelters").then().statusCode(401);
         json(SHELTER).when().put("/admin/shelters/" + shelterA).then().statusCode(401);
         given().when().delete("/admin/shelters/" + shelterA).then().statusCode(401);
+        given().when().get("/admin/shelters/%d/staff".formatted(shelterA)).then().statusCode(401);
         given().when().put(staffPath).then().statusCode(401);
         given().when().delete(staffPath).then().statusCode(401);
 

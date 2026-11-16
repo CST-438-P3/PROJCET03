@@ -71,4 +71,12 @@ class ShelterRulesTest {
                 + "Phone must be 30 characters or less; Email must be 320 characters or less",
             errorFor(name + "n", address + "a", "93940", phone + "1", "e" + email));
     }
+
+    @Test
+    void pageAndSizeLimits() {
+        assertDoesNotThrow(() -> ShelterRules.checkPage(0, 1));
+        assertDoesNotThrow(() -> ShelterRules.checkPage(3, ShelterRules.PAGE_SIZE_MAX));
+        BadRequestException e = assertThrows(BadRequestException.class, () -> ShelterRules.checkPage(0, 0));
+        assertEquals("Size must be between 1 and 50", e.getMessage());
+    }
 }

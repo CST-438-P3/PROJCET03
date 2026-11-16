@@ -1,9 +1,11 @@
 package edu.csumb.api.shelter;
 
 import edu.csumb.api.shelter.service.ShelterService;
-import org.springframework.http.HttpStatus;
+import java.net.URI;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -26,10 +28,11 @@ public class AdminShelterController {
         this.shelterService = shelterService;
     }
 
-    /** Creates a shelter. No Location header yet, because GET /shelters/{shelterId} comes with the admin screen. */
+    /** Creates a shelter. The Location header points to GET /shelters/{shelterId}. */
     @PostMapping
     public ResponseEntity<ShelterResponse> create(@RequestBody ShelterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(shelterService.create(request));
+        ShelterResponse shelter = shelterService.create(request);
+        return ResponseEntity.created(URI.create("/shelters/" + shelter.id())).body(shelter);
     }
 
     /** Replaces a shelter. */
@@ -43,6 +46,12 @@ public class AdminShelterController {
     public ResponseEntity<Void> delete(@PathVariable long shelterId) {
         shelterService.delete(shelterId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Lists the shelter's staff, sorted by email. */
+    @GetMapping("/{shelterId}/staff")
+    public List<StaffMember> staff(@PathVariable long shelterId) {
+        return shelterService.staff(shelterId);
     }
 
     /** Makes the user staff for the shelter, so they can post for it. */

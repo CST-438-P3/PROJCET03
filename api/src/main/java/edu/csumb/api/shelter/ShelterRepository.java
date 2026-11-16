@@ -1,5 +1,6 @@
 package edu.csumb.api.shelter;
 
+import java.util.List;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -16,6 +17,21 @@ public interface ShelterRepository extends JpaRepository<Shelter, Long> {
     /** Says whether this ZIP code is in zip_codes, which shelters.zip_code must point to. */
     @Query(value = "SELECT EXISTS (SELECT 1 FROM zip_codes WHERE zip = :zip)", nativeQuery = true)
     boolean zipExists(@Param("zip") String zip);
+
+    /** The users who are staff for the shelter, sorted by email. */
+    @Query(value = "SELECT u.id AS id, u.email AS email, u.display_name AS displayName FROM users u "
+        + "JOIN shelter_staff s ON s.user_id = u.id WHERE s.shelter_id = :shelterId ORDER BY u.email",
+        nativeQuery = true)
+    List<StaffRow> findStaff(@Param("shelterId") long shelterId);
+
+    /** One row of findStaff. */
+    interface StaffRow {
+        long getId();
+
+        String getEmail();
+
+        String getDisplayName();
+    }
 
     /** Makes the user staff for the shelter; does nothing if they already are. */
     @Modifying

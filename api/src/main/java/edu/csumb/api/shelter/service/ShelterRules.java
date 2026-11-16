@@ -21,6 +21,9 @@ public final class ShelterRules {
     /** Longest email, the same as the shelters.email column. */
     public static final int EMAIL_MAX_LENGTH = 320;
 
+    /** Most shelters on one page, the same as the Size parameter in openapi.yaml. */
+    public static final int PAGE_SIZE_MAX = 50;
+
     private static final Pattern ZIP = Pattern.compile("[0-9]{5}");
 
     /** Something, one @, then a domain with a dot. Enough to catch typos; the shelter's inbox is the real test. */
@@ -77,6 +80,20 @@ public final class ShelterRules {
             throw new BadRequestException(String.join("; ", errors));
         }
         return new CheckedShelter(name, address, zip, phone, email);
+    }
+
+    /** Checks the page and size of GET /shelters, or throws BadRequestException listing every problem. */
+    public static void checkPage(int page, int size) {
+        List<String> errors = new ArrayList<>();
+        if (page < 0) {
+            errors.add("Page must be 0 or more");
+        }
+        if (size < 1 || size > PAGE_SIZE_MAX) {
+            errors.add("Size must be between 1 and " + PAGE_SIZE_MAX);
+        }
+        if (!errors.isEmpty()) {
+            throw new BadRequestException(String.join("; ", errors));
+        }
     }
 
     /** Removes spaces at the start and end, and turns an empty text into null. */
