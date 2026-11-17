@@ -5,6 +5,7 @@ Steps marked **TODO (after first deploy)** get filled in once the API is live on
 
 - [Build and run from a fresh clone](#build-and-run-from-a-fresh-clone)
 - [Run the tests](#run-the-tests)
+- [Stop everything](#stop-everything)
 - [Local problems and fixes](#local-problems-and-fixes)
 - [Deploy](#deploy)
 - [Roll back to the previous release](#roll-back-to-the-previous-release)
@@ -36,6 +37,10 @@ reopen the terminal** before checking again.
 You do **not** need Postgres, Gradle, or any keys or `.env` file. Docker brings Postgres and Gradle with it.
 To only run the stack (no tests), Git and Docker Desktop are enough.
 
+> ✅ **Go to step 1 when:** `git --version` and `docker --version` print versions and Docker Desktop says *Engine running*
+> (plus `node` and `java` if you will run the tests).
+> ❌ **If not:** install the missing tool, close and reopen the terminal, and check again. Still stuck: [Local problems and fixes](#local-problems-and-fixes).
+
 ### 1. Get the code
 
 The terminal starts in your home folder. Any folder is fine: `git clone` makes a new
@@ -52,6 +57,9 @@ gives `Repository not found`. Copy and paste the commands in this guide instead 
 All commands below start in this `PROJCET03` folder unless a step says `cd`.
 If you close the terminal, open a new one and go back with `cd PROJCET03`.
 
+> ✅ **Go to step 2 when:** `git clone` ends with `Resolving deltas: 100% ... done` and your prompt ends in `PROJCET03>`.
+> ❌ **If not:** `Repository not found` means a typo; copy the commands above. Anything else: [Local problems and fixes](#local-problems-and-fixes).
+
 ### 2. Start the database and the API
 
 Make sure Docker Desktop is open and running (its window says *Engine running*), then:
@@ -67,7 +75,15 @@ What you should see:
 - The log ends with a line like `Started ApiApplication in 9.3 seconds`. The API is ready.
 - A yellow `WARN ... SpringDoc /swagger-ui.html endpoint is enabled` line is normal, not an error.
 - Newer Docker shows a menu at the bottom (`v View in Docker Desktop`, `d Detach`, ...). You can ignore it.
-- This terminal is now busy showing logs. Leave it open. Open a **second terminal** for the next steps.
+- **This command never finishes on its own.** The API runs inside this window for as long as it is open,
+  so don't wait for the prompt to come back, and don't close the window.
+  **Open a second terminal window now** (same way as in step 0), go to the project with `cd PROJCET03`,
+  and type all the next steps there.
+
+> ✅ **Go to step 3 when:** the log shows `Started ApiApplication` and stays there (it does not return to the prompt;
+> that is correct). Do steps 3 and later in the second terminal.
+> ❌ **If not:** if the command stops with a red error or returns to the prompt, find the error in [Local problems and fixes](#local-problems-and-fixes).
+> If it is still printing download or build lines, it is working; wait.
 
 ### 3. Check that the API is healthy
 
@@ -88,7 +104,15 @@ From a terminal instead: `curl http://localhost:8080/actuator/health` (macOS/Lin
 
 The API docs are at http://localhost:8080/swagger-ui.html.
 
+> ✅ **Go on when:** you see `"status":"UP"`. The stack works. Step 4 is optional; for the tests go to [Run the tests](#run-the-tests).
+> ❌ **If not:** the browser can't connect → step 2 is not running or not finished. `"status":"DOWN"` → see [Database unreachable](#database-unreachable).
+
 ### 4. Run the app (optional)
+
+> **Windows PowerShell and npm:** if any `npm` command says *running scripts is disabled on this system*
+> (Korean Windows: *이 시스템에서 스크립트를 실행할 수 없으므로*), type `npm.cmd` instead of `npm`
+> (`npm.cmd ci`, `npm.cmd run web`, `npm.cmd test`; the same for `npx` → `npx.cmd`). Or run this once and answer `Y`, and plain `npm`
+> works from then on: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
 In the second terminal, with the API still running:
 
@@ -98,25 +122,26 @@ npm ci
 npm run web
 ```
 
-- `npm ci` takes 1 to 2 minutes the first time.
+- `npm ci` installs about 1,300 packages. The first time it takes 2 to 5 minutes, and on Windows up to 10
+  (antivirus scans each file). Do not stop it; it is done when it prints `added ... packages`.
+- After that, `npm warn deprecated ...`, `... vulnerabilities (... moderate, ... high)` and
+  `npm warn allow-scripts ...` are normal warnings, not errors. Do **not** run `npm audit fix --force`:
+  it changes package versions and can break the app.
 - When Expo says the web app is ready, open http://localhost:8081.
 - Click **Sign in with GitHub** (sign-in is not wired to real GitHub yet, so it goes straight in), then **Search**.
   You should see pets named Luna and Max.
 - Stop the app with `Ctrl+C`.
 
-### 5. Stop everything
-
-In the terminal running `docker compose up`, press `Ctrl+C`. Then:
-
-```sh
-docker compose down        # removes the containers, keeps the database
-docker compose down -v     # also deletes the database, for a clean start
-```
+> ✅ **Done when:** you see Luna and Max after **Search**.
+> ❌ **If not:** "We couldn't load nearby pets" → the API from step 2 is not running. An npm error → [Local problems and fixes](#local-problems-and-fixes).
 
 ## Run the tests
 
-You do not need `docker compose up` for the unit and API tests. Docker Desktop must be **running**,
+Keep the stack from step 2 running if you plan to run the end-to-end test; the other tests do not need it. Docker Desktop must be **running**,
 because the API tests start their own Postgres with Testcontainers.
+
+Each command block starts in the `PROJCET03` folder. If your terminal is still in `app` from step 4,
+go back up first with `cd ..` (the `api` and `app` folders sit side by side).
 
 **API tests** (needs JDK 21):
 
@@ -126,10 +151,15 @@ cd api
 .\gradlew.bat test      # Windows PowerShell
 ```
 
-The first run downloads Gradle and takes a few minutes. Success ends with `BUILD SUCCESSFUL`.
+The first run downloads Gradle, the libraries and a test Postgres image, so it takes **5 to 10 minutes**
+(later runs take 1 to 2). Do not stop it while the lines keep changing. Success ends with `BUILD SUCCESSFUL`.
 The report is at `api/build/reports/tests/test/index.html`.
 
-**App tests** (needs Node 22 or newer):
+> ✅ **Passed when:** you see `BUILD SUCCESSFUL`.
+> ❌ **If not:** `BUILD FAILED` with a Java or Gradle message → check JDK 21 in [Local problems and fixes](#local-problems-and-fixes). `There were failing tests` → open the
+> report above, note the test name, and open an issue with it.
+
+**App tests** (needs Node 22 or newer). On Windows, if `npm` is blocked, use `npm.cmd` (see step 4):
 
 ```sh
 cd app
@@ -139,22 +169,48 @@ npm test
 
 Success shows `Tests: N passed, N total` with no failures.
 
-**End-to-end test** (optional; needs the API running from step 2):
+> ✅ **Passed when:** `Tests:` shows only `passed` (no `failed`).
+> ❌ **If not:** `'jest' is not recognized` → `npm ci` did not finish; run it again. A failed test → run `npm test` once more
+> (the first run on a slow machine is the slowest); if it still fails, open an issue with the test name and its error.
+
+**End-to-end test** (optional). It needs the API running: if the step 2 terminal is closed or you
+stopped it, run `docker compose up` again in another terminal and wait for `Started ApiApplication`.
+That terminal stays busy showing logs, so run the commands below in a **second terminal** (open a new
+PowerShell or Terminal window and `cd` into `PROJCET03\app`). It also needs `npm ci` to have finished.
 
 ```sh
 cd app
-npx playwright install chromium
+npx playwright install chromium     # downloads a test browser, about 150 MB, first time only
 npm run e2e
 ```
 
+On Windows, if `npx` or `npm` is blocked, use `npx.cmd` and `npm.cmd` (see step 4). If Playwright warns
+that you are running `npx playwright install` *without first installing your project's dependencies*,
+stop it with `Ctrl+C`, run `npm ci` and wait for it to finish, then try again.
+
 It builds the web app, opens it in a browser, signs in, searches, and checks accessibility with axe.
 Success shows `1 passed`.
+
+> ✅ **Passed when:** `1 passed`.
+> ❌ **If not:** check that step 2 is running (`"status":"UP"`), then see [Local problems and fixes](#local-problems-and-fixes).
+
+## Stop everything
+
+Do this last, after the tests. In the terminal running `docker compose up`, press `Ctrl+C`. Then:
+
+```sh
+docker compose down        # removes the containers, keeps the database
+docker compose down -v     # also deletes the database, for a clean start
+```
+
+> ✅ **Done when:** `docker compose down` lists the containers as `Removed`.
 
 ## Local problems and fixes
 
 | What you see | What to do |
 |---|---|
 | `remote: Repository not found` on `git clone` | Check the spelling: `PROJCET03`, not `PROJECT03`. Copy the command from step 1. |
+| `cd api` or `cd app` says the path does not exist | You are in the wrong folder. Go back to the `PROJCET03` folder with `cd ..` and try again. |
 | `docker: command not found` or `'docker' is not recognized` | Not installed yet, or the terminal was opened before installing. Install Docker Desktop, open it once and wait for *Engine running*, then close and reopen the terminal. Still not found: restart the computer. |
 | Docker Desktop says **WSL not installed** (Windows) | Open PowerShell **as administrator** (Start, type `PowerShell`, choose *Run as administrator*), run `wsl --install`, then restart the computer and open Docker Desktop again. |
 | `Cannot connect to the Docker daemon` or `error during connect` | Docker Desktop is installed but not running. Open it and wait until it says it is running. |
@@ -164,6 +220,7 @@ Success shows `1 passed`.
 | `Gradle requires JVM 17 or later`, `Unsupported class file major version`, or Gradle cannot find Java 21 | Your terminal uses another Java version (often 1.8, sometimes 25). Install JDK 21 with **Set JAVA_HOME** and **Add to PATH** turned on and open a new terminal. Gradle uses `JAVA_HOME`: check it with `echo $env:JAVA_HOME` (Windows) or `echo $JAVA_HOME` (macOS); it should point to the JDK 21 folder. |
 | API tests fail with `Could not find a valid Docker environment` | Testcontainers needs Docker. Open Docker Desktop and wait until it is running. |
 | Windows: `npm.ps1 cannot be loaded because running scripts is disabled` (Korean Windows: `이 시스템에서 스크립트를 실행할 수 없으므로`) | A Windows PowerShell safety setting, not a project problem. Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and answer `Y`, then run the npm command again. Or type `npm.cmd` instead of `npm` (for example `npm.cmd ci`). |
+| `'jest' is not recognized` / `jest: not found` on `npm test` | `npm ci` was stopped before it finished (it deletes `node_modules` first). Run `npm ci` again and wait for `added ... packages`. |
 | `npm ci` fails with an engine or syntax error | Your Node is too old. Install Node 22 or newer, open a new terminal, run `node --version`. |
 | The browser says it can't reach `localhost:8080` | The API is not running. Look at the step 2 terminal: is it still open, and does it show `Started ApiApplication`? If it stopped with an error, find that error in this table. |
 | The app shows "We couldn't load nearby pets" | The API is not running. Start it with step 2 and check step 3. |
