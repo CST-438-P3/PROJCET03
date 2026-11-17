@@ -6,6 +6,7 @@ Steps marked **TODO (after first deploy)** get filled in once the API is live on
 - [Build and run from a fresh clone](#build-and-run-from-a-fresh-clone)
 - [Run the tests](#run-the-tests)
 - [Stop everything](#stop-everything)
+  - [Reset the database (optional)](#reset-the-database-optional)
 - [Local problems and fixes](#local-problems-and-fixes)
 - [Deploy](#deploy)
 - [Roll back to the previous release](#roll-back-to-the-previous-release)
@@ -176,7 +177,7 @@ Success shows `Tests: N passed, N total` with no failures.
 **End-to-end test** (optional). It needs the API running: if the step 2 terminal is closed or you
 stopped it, run `docker compose up` again in another terminal and wait for `Started ApiApplication`.
 That terminal stays busy showing logs, so run the commands below in a **second terminal** (open a new
-PowerShell or Terminal window and `cd` into `PROJCET03\app`). It also needs `npm ci` to have finished.
+PowerShell or Terminal window and `cd` into the `PROJCET03` folder). It also needs `npm ci` to have finished.
 
 ```sh
 cd app
@@ -199,11 +200,24 @@ Success shows `1 passed`.
 Do this last, after the tests. In the terminal running `docker compose up`, press `Ctrl+C`. Then:
 
 ```sh
-docker compose down        # removes the containers, keeps the database
-docker compose down -v     # also deletes the database, for a clean start
+docker compose down
 ```
 
+This removes the containers and keeps the database, so your data is still there next time.
+
 > ✅ **Done when:** `docker compose down` lists the containers as `Removed`.
+
+### Reset the database (optional)
+
+Only do this if you want to start over with an empty database, or the troubleshooting table tells you to.
+It **deletes all local data**.
+
+```sh
+docker compose down -v
+docker compose up --build
+```
+
+> ✅ **Done when:** step 3 shows `"status":"UP"` again.
 
 ## Local problems and fixes
 
@@ -215,7 +229,7 @@ docker compose down -v     # also deletes the database, for a clean start
 | Docker Desktop says **WSL not installed** (Windows) | Open PowerShell **as administrator** (Start, type `PowerShell`, choose *Run as administrator*), run `wsl --install`, then restart the computer and open Docker Desktop again. |
 | `Cannot connect to the Docker daemon` or `error during connect` | Docker Desktop is installed but not running. Open it and wait until it says it is running. |
 | `port is already allocated` or `address already in use` for 8080 | Another program uses port 8080, often another project's API. Stop it, then run `docker compose up` again. |
-| API exits with `Flyway` or `Schema-validation` errors | Your local database is from an older version. Run `docker compose down -v`, then `docker compose up --build`. |
+| API exits with `Flyway` or `Schema-validation` errors | Your local database is from an older version. Follow [Reset the database](#reset-the-database-optional). |
 | `./gradlew: Permission denied` (macOS/Linux) | Run `chmod +x gradlew` in the `api` folder, then try again. |
 | `Gradle requires JVM 17 or later`, `Unsupported class file major version`, or Gradle cannot find Java 21 | Your terminal uses another Java version (often 1.8, sometimes 25). Install JDK 21 with **Set JAVA_HOME** and **Add to PATH** turned on and open a new terminal. Gradle uses `JAVA_HOME`: check it with `echo $env:JAVA_HOME` (Windows) or `echo $JAVA_HOME` (macOS); it should point to the JDK 21 folder. |
 | API tests fail with `Could not find a valid Docker environment` | Testcontainers needs Docker. Open Docker Desktop and wait until it is running. |
