@@ -1,6 +1,6 @@
 # PROJECT03
 
-<!-- One line: what it is and who it's for. See docs/prd.md. -->
+Furever Near: find adoptable cats and dogs at shelters near you. A Spring Boot API with an Expo app for web and Android. See `docs/prd.md`.
 
 ## Layout
 
@@ -12,15 +12,21 @@
 
 ## Run locally
 
-Prerequisites: JDK 21, Node 22, a Postgres on `localhost:5432` (db/user/password `app`).
+**Full step-by-step guide, with expected output and fixes: [`docs/runbook.md`](docs/runbook.md#build-and-run-from-a-fresh-clone).**
+
+Short version. You need Git and Docker Desktop (running); Node 22 or newer for the app; JDK 21 for the API tests.
+No `.env` or keys are needed to run locally. Note the repo name is spelled `PROJCET03`.
 
 ```sh
-cp .env.example .env            # fill in values, never commit
-cd api && JWT_SECRET=<32+ chars> ./gradlew bootRun   # http://localhost:8080
-cd app && npm install && npm run web                  # http://localhost:8081
+git clone https://github.com/CST-438-P3/PROJCET03.git
+cd PROJCET03
+docker compose up --build        # first time 3-6 min; ready at "Started ApiApplication"
 ```
 
-API contract: `api/src/main/resources/static/openapi.yaml`, Swagger UI at `/swagger-ui.html`.
+Then open http://localhost:8080/actuator/health and look for `"status":"UP"`.
+Swagger UI: http://localhost:8080/swagger-ui.html
+
+App (optional, second terminal): `cd app && npm ci && npm run web`, then open http://localhost:8081.
 
 ## Deploy API to Render with Neon Postgres
 
@@ -38,13 +44,10 @@ origin.
 
 ## Tests
 
+Docker Desktop must be running. See the runbook for expected output.
+
 ```sh
-cd api && ./gradlew test        # needs Docker (Testcontainers)
-cd app && npm test              # Jest
-cd app && npm run e2e           # Playwright + axe
+cd api && ./gradlew test        # JDK 21; Windows PowerShell: .\gradlew.bat test
+cd app && npm ci && npm test    # Node 22+
+cd app && npm run e2e           # optional; needs the API from docker compose up
 ```
-
-## Live URLs
-
-- API: TBD
-- Web: TBD
