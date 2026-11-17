@@ -3,10 +3,15 @@ import { Page, Shelter, ShelterInput, StaffMember } from './types';
 
 // Every call goes through api(). All but listShelters need the ADMIN role.
 
-/** The first 50 shelters, sorted by name (GET /shelters). 50 is the most the API gives in one page. */
+/** Every shelter, sorted by name (GET /shelters). Asks page by page, 50 at a time (the most the API gives). */
 export async function listShelters(): Promise<Shelter[]> {
-  const page = await api<Page<Shelter>>('/shelters?page=0&size=50');
-  return page.content;
+  const shelters: Shelter[] = [];
+  for (let page = 0; ; page++) {
+    const result = await api<Page<Shelter>>(`/shelters?page=${page}&size=50`);
+    shelters.push(...result.content);
+    // Stop on the last page, or on an empty one so a wrong totalPages can't loop forever
+    if (page + 1 >= result.totalPages || result.content.length === 0) return shelters;
+  }
 }
 
 /** Creates a shelter (POST /admin/shelters). */
