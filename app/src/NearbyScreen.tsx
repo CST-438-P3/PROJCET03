@@ -5,7 +5,13 @@ import { getNearbyPets, NearbyPet } from './nearbyApi';
 
 type Loader = (zip: string, distance: number) => Promise<NearbyPet[]>;
 
-export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }) {
+type NearbyScreenProps = {
+  loadPets?: Loader;
+  // Opens a pet's detail page (S6).
+  onOpenPet?: (pet: NearbyPet) => void;
+};
+
+export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet }: NearbyScreenProps) {
   const [zip, setZip] = useState('93933');
   const [distance, setDistance] = useState('10');
   const [pets, setPets] = useState<NearbyPet[]>([]);
@@ -48,14 +54,20 @@ export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }
         {searched && !loading && pets.length === 0 && <Text style={styles.empty}>No pets within {distance} miles.</Text>}
         <View accessibilityLabel="Nearby pet results" style={styles.results}>
           {pets.map((pet) => (
-            <View key={pet.id} style={styles.card}>
+            <Pressable
+              key={pet.id}
+              role="button"
+              disabled={!onOpenPet}
+              onPress={() => onOpenPet?.(pet)}
+              style={styles.card}
+            >
               <View style={styles.cardTop}>
                 <Text style={styles.petName}>{pet.name}</Text>
                 <Text style={styles.distance}>{pet.distanceMiles} mi</Text>
               </View>
               <Text style={styles.meta}>{pet.species === 'CAT' ? 'Cat' : 'Dog'} · {pet.shelter.name}</Text>
               {!!pet.description && <Text style={styles.description}>{pet.description}</Text>}
-            </View>
+            </Pressable>
           ))}
         </View>
       </ScrollView>
