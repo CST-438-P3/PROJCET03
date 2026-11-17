@@ -5,12 +5,18 @@ import edu.csumb.api.error.NotFoundException;
 import edu.csumb.api.shelter.Shelter;
 import edu.csumb.api.shelter.ShelterRepository;
 import edu.csumb.api.shelter.ShelterRequest;
+import edu.csumb.api.shelter.ShelterPage;
 import edu.csumb.api.shelter.ShelterResponse;
+import edu.csumb.api.shelter.StaffMember;
 import edu.csumb.api.user.UserRepository;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Creates, edits and deletes shelters and chooses their staff, for admins (S10). */
+/** Lists shelters for everyone, and creates, edits and deletes shelters and chooses their staff for admins (S10). */
 @Service
 public class ShelterService {
 
@@ -21,6 +27,30 @@ public class ShelterService {
     public ShelterService(ShelterRepository shelters, UserRepository users) {
         this.shelters = shelters;
         this.users = users;
+    }
+
+    /** Returns one page of shelters sorted by name, or throws BadRequestException for a bad page or size. */
+    @Transactional(readOnly = true)
+    public ShelterPage list(int page, int size) {
+        ShelterRules.checkPage(page, size);
+        Page<Shelter> found = shelters.findAll(PageRequest.of(page, size, Sort.by("name", "id")));
+        return new ShelterPage(page, size, found.getTotalElements(), found.getTotalPages(),
+            found.map(ShelterResponse::from).getContent());
+    }
+
+    /** Returns one shelter, or throws NotFoundException if there is no shelter with this id. */
+    @Transactional(readOnly = true)
+    public ShelterResponse get(long shelterId) {
+        return ShelterResponse.from(find(shelterId));
+    }
+
+    /** Returns the shelter's staff sorted by email, or throws NotFoundException if there is no such shelter. */
+    @Transactional(readOnly = true)
+    public List<StaffMember> staff(long shelterId) {
+        find(shelterId);
+        return shelters.findStaff(shelterId).stream()
+            .map(row -> new StaffMember(row.getId(), row.getEmail(), row.getDisplayName()))
+            .toList();
     }
 
     /** Saves a new shelter and returns it. */
