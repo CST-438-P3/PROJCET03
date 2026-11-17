@@ -25,9 +25,16 @@ Steps marked **TODO (after first deploy)** get filled in once the API is live on
 
 You do **not** need Postgres, Gradle, or any keys or `.env` file. Docker brings Postgres and Gradle with it.
 
-On Windows, use **PowerShell** for the commands below. On macOS or Linux, use **Terminal**.
+### 1. Open a terminal and get the code
 
-### 1. Get the code
+Open a terminal:
+
+- **Windows:** press the Start key, type `PowerShell`, and open **Windows PowerShell**.
+  (The terminal inside VS Code, `` Ctrl+` ``, works too.)
+- **macOS:** press `Cmd+Space`, type `Terminal`, and press Enter.
+
+The terminal starts in your home folder. Any folder is fine: `git clone` makes a new
+`PROJCET03` folder inside it. Then type:
 
 ```sh
 git clone https://github.com/CST-438-P3/PROJCET03.git
@@ -35,10 +42,11 @@ cd PROJCET03
 ```
 
 All commands below start in this `PROJCET03` folder unless a step says `cd`.
+If you close the terminal, open a new one and go back with `cd PROJCET03`.
 
 ### 2. Start the database and the API
 
-Make sure Docker Desktop is open and running, then:
+Make sure Docker Desktop is open and running (its window says *Engine running*), then:
 
 ```sh
 docker compose up --build
