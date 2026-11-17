@@ -14,8 +14,8 @@ Furever Near: find adoptable cats and dogs at shelters near you. A Spring Boot A
 
 **Full step-by-step guide, with expected output and fixes: [`docs/runbook.md`](docs/runbook.md#build-and-run-from-a-fresh-clone).**
 
-Short version. You need Git and Docker Desktop (running); Node 22 for the app; JDK 21 for the API tests.
-No `.env` or keys are needed to run locally.
+Short version. You need Git and Docker Desktop (running); Node 22 or newer for the app; JDK 21 for the API tests.
+No `.env` or keys are needed to run locally. Note the repo name is spelled `PROJCET03`.
 
 ```sh
 git clone https://github.com/CST-438-P3/PROJCET03.git
@@ -48,6 +48,6 @@ Docker Desktop must be running. See the runbook for expected output.
 
 ```sh
 cd api && ./gradlew test        # JDK 21; Windows PowerShell: .\gradlew.bat test
-cd app && npm ci && npm test    # Node 22
+cd app && npm ci && npm test    # Node 22+
 cd app && npm run e2e           # optional; needs the API from docker compose up
 ```
