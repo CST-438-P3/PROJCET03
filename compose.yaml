@@ -34,6 +34,9 @@ services:
       CORS_ORIGINS: http://localhost:8081
       # Lets the web app search without signing in, for local runs only.
       PUBLIC_NEARBY: "true"
+      # Live Rescue Groups data instead of the 3 fake pets: set both in .env (see .env.example).
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+      RESCUE_GROUPS_API_KEY: ${RESCUE_GROUPS_API_KEY:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}

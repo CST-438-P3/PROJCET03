@@ -15,7 +15,8 @@ class ApiIntegrationTestSetupTest extends ApiIntegrationTest {
 
     @Test
     void tokenFromTheHelperIsAccepted() {
-        given().header("Authorization", "Bearer " + tokenFor(addUser("setup@example.com")))
+        long userId = addUser("token-helper@example.com");
+        given().header("Authorization", "Bearer " + tokenFor(userId))
             .when().get("/users/me")
             .then().statusCode(not(401));
     }

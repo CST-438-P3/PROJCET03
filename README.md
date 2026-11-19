@@ -28,6 +28,11 @@ Swagger UI: http://localhost:8080/swagger-ui.html
 
 App (optional, second terminal): `cd app && npm ci && npm run web`, then open http://localhost:8081.
 
+Live pets (optional): nearby search uses 3 built-in sample pets by default. To search real
+adoptable animals from Rescue Groups, put `SPRING_PROFILES_ACTIVE=pet-provider` and your
+`RESCUE_GROUPS_API_KEY` in `.env`. The key stays on the API and never goes to the app.
+Results come 10 per page.
+
 ## Deploy API to Render with Neon Postgres
 
 The root `render.yaml` deploys the Spring API on Render and prompts for
