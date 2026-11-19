@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import edu.csumb.api.error.BadRequestException;
 import edu.csumb.api.post.PostRequest;
 import edu.csumb.api.post.PostStatus;
+import edu.csumb.api.post.PostUpdateRequest;
 import edu.csumb.api.post.Sex;
 import edu.csumb.api.post.Size;
 import edu.csumb.api.post.Species;
@@ -217,5 +218,29 @@ class PostRulesTest {
             "Max", Species.DOG, null, Sex.MALE, Size.LARGE, null, null, null);
         assertEquals(Sex.MALE, given.sex());
         assertEquals(Size.LARGE, given.size());
+    }
+
+    @Test
+    void editNeedsAStatus() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkUpdate(
+            new PostUpdateRequest("Mochi", Species.CAT, null, null, null, null, null, null, null)));
+        assertEquals("Status is required", e.getMessage());
+    }
+
+    @Test
+    void editCleansFieldsLikeCreate() {
+        PostRules.CheckedPost checked = PostRules.checkUpdate(new PostUpdateRequest(
+            "  Mochi  ", Species.CAT, " ", null, Size.SMALL, 30, "", null, PostStatus.ADOPTED));
+        assertEquals("Mochi", checked.name());
+        assertNull(checked.breed());
+        assertNull(checked.description());
+        assertEquals(Sex.UNKNOWN, checked.sex());
+    }
+
+    @Test
+    void statusChangeNeedsAStatus() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> PostRules.checkStatus(null));
+        assertEquals("Status is required", e.getMessage());
+        assertEquals(PostStatus.ADOPTED, PostRules.checkStatus(PostStatus.ADOPTED));
     }
 }
