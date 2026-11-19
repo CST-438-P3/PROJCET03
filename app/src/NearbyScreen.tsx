@@ -6,7 +6,9 @@ import { ApiError } from './api';
 
 type Loader = (zip: string, distance: number, species?: undefined, page?: number, size?: number) => Promise<NearbyPet[] | NearbyPage>;
 
-export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }) {
+type NearbyScreenProps = { loadPets?: Loader; onOpenPet?: (pet: NearbyPet) => void; onOpenAdmin?: () => void };
+
+export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin }: NearbyScreenProps) {
   const [zip, setZip] = useState('93933');
   const [distance, setDistance] = useState('10');
   const [pets, setPets] = useState<NearbyPet[]>([]);
@@ -46,6 +48,7 @@ export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }
   return (
     <View role="main" style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
+        {onOpenAdmin && <Pressable role="button" onPress={onOpenAdmin} style={styles.adminButton}><Text style={styles.adminText}>Admin</Text></Pressable>}
         <Text role="heading" aria-level={1} style={styles.title}>Pets near you</Text>
         <Text style={styles.subtitle}>Find cats and dogs you can actually visit.</Text>
         <View style={styles.form}>
@@ -65,7 +68,7 @@ export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }
         {searched && !loading && pets.length === 0 && <Text style={styles.empty}>No pets within {distance} miles.</Text>}
         <View accessibilityLabel="Nearby pet results" style={styles.results}>
           {pets.map((pet) => (
-            <View key={pet.id} style={styles.card}>
+            <Pressable key={pet.id} role="button" disabled={!onOpenPet} onPress={() => onOpenPet?.(pet)} style={styles.card}>
               {pet.photoUrl && <Image accessibilityLabel={`${pet.name} photo`} source={{ uri: pet.photoUrl }} style={styles.photo} />}
               <View style={styles.cardTop}>
                 <Text style={styles.petName}>{pet.name}</Text>
@@ -73,7 +76,7 @@ export function NearbyScreen({ loadPets = getNearbyPets }: { loadPets?: Loader }
               </View>
               <Text style={styles.meta}>{pet.species === 'CAT' ? 'Cat' : 'Dog'} · {pet.shelter.name}</Text>
               {!!pet.description && <Text style={styles.description}>{pet.description}</Text>}
-            </View>
+            </Pressable>
           ))}
         </View>
         {searched && totalPages > 1 && (
@@ -106,6 +109,8 @@ const styles = StyleSheet.create({
   error: { backgroundColor: color.ink, color: color.surface, borderRadius: 12, padding: 12 },
   empty: { color: color.ink, fontFamily: font.semiBold, fontSize: 18, paddingVertical: 20 },
   results: { gap: 12 },
+  adminButton: { alignSelf: 'flex-end', minHeight: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.surface, justifyContent: 'center' },
+  adminText: { color: color.ink, fontFamily: font.semiBold, fontSize: 15 },
   card: { backgroundColor: color.surface, borderRadius: 18, padding: 18, gap: 8 },
   photo: { width: '100%', height: 180, borderRadius: 12, backgroundColor: color.surfaceActive },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
