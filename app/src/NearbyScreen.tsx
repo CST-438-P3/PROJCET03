@@ -9,9 +9,11 @@ type NearbyScreenProps = {
   loadPets?: Loader;
   // Opens a pet's detail page (S6).
   onOpenPet?: (pet: NearbyPet) => void;
+  // Opens the "My favorites" list (S8). The button only shows when this is passed in.
+  onOpenFavorites?: () => void;
 };
 
-export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet }: NearbyScreenProps) {
+export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenFavorites }: NearbyScreenProps) {
   const [zip, setZip] = useState('93933');
   const [distance, setDistance] = useState('10');
   const [pets, setPets] = useState<NearbyPet[]>([]);
@@ -35,6 +37,11 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet }: NearbyScre
   return (
     <View role="main" style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
+        {onOpenFavorites && (
+          <Pressable role="button" onPress={onOpenFavorites} style={styles.favoritesButton}>
+            <Text style={styles.favoritesButtonText}>♥ My favorites</Text>
+          </Pressable>
+        )}
         <Text role="heading" aria-level={1} style={styles.title}>Pets near you</Text>
         <Text style={styles.subtitle}>Find cats and dogs you can actually visit.</Text>
         <View style={styles.form}>
@@ -78,6 +85,15 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet }: NearbyScre
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.brand },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: 24, gap: 16 },
+  favoritesButton: {
+    alignSelf: 'flex-end',
+    minHeight: 48,
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: color.surface,
+    paddingHorizontal: 20,
+  },
+  favoritesButtonText: { color: color.ink, fontFamily: font.semiBold, fontSize: 16 },
   title: { color: color.ink, fontFamily: font.extraBold, fontSize: 40, lineHeight: 46 },
   subtitle: { color: color.ink, fontFamily: font.regular, fontSize: 18 },
   form: { backgroundColor: color.surface, borderRadius: 20, padding: 16, gap: 12 },
