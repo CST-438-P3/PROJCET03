@@ -235,7 +235,7 @@ paths:
           in: query
           schema: { $ref: '#/components/schemas/Species' }
         - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/NearbySize'
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
         '400': { description: Unknown ZIP code or no ZIP set, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
@@ -387,6 +387,11 @@ components:
       name: size
       in: query
       schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    NearbySize:
+      name: size
+      in: query
+      description: Results per nearby-search page
+      schema: { type: integer, minimum: 1, maximum: 10, default: 10 }
     ShelterId:
       name: shelterId
       in: path

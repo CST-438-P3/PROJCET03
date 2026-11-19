@@ -35,6 +35,9 @@ app:
     api-uri: https://api.github.com
   # Enable only for local/demo environments until OAuth is wired into the app.
   public-nearby: ${PUBLIC_NEARBY:false}
+  rescue-groups:
+    base-url: ${RESCUE_GROUPS_BASE_URL:https://api.rescuegroups.org/v5}
+    api-key: ${RESCUE_GROUPS_API_KEY:}
 
 management:
   endpoints:

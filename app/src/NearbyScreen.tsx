@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { color, font } from './theme';
-import { getNearbyPets, NearbyPet } from './nearbyApi';
+import { getNearbyPets, NearbyPage, NearbyPet } from './nearbyApi';
+import { ApiError } from './api';
 
-type Loader = (zip: string, distance: number) => Promise<NearbyPet[]>;
+type Loader = (zip: string, distance: number, species?: undefined, page?: number, size?: number) => Promise<NearbyPet[] | NearbyPage>;
 
 type NearbyScreenProps = {
   loadPets?: Loader;
@@ -22,15 +23,30 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  async function search() {
+  async function search(nextPage = 0) {
     setLoading(true);
     setError(null);
     try {
-      setPets(await loadPets(zip, Number(distance)));
+      const result = nextPage === 0
+        ? await loadPets(zip, Number(distance))
+        : await loadPets(zip, Number(distance), undefined, nextPage, 10);
+      if (Array.isArray(result)) {
+        setPets(result.slice(0, 10));
+        setTotalPages(result.length > 10 ? Math.ceil(result.length / 10) : result.length ? 1 : 0);
+        setTotalElements(result.length);
+      } else {
+        setPets(result.content);
+        setTotalPages(result.totalPages);
+        setTotalElements(result.totalElements);
+      }
+      setPage(nextPage);
       setSearched(true);
-    } catch {
-      setError("We couldn't load nearby pets. Please try again.");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "We couldn't load nearby pets. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -78,6 +94,7 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
               onPress={() => onOpenPet?.(pet)}
               style={styles.card}
             >
+              {pet.photoUrl && <Image accessibilityLabel={`${pet.name} photo`} source={{ uri: pet.photoUrl }} style={styles.photo} />}
               <View style={styles.cardTop}>
                 <Text style={styles.petName}>{pet.name}</Text>
                 <Text style={styles.distance}>{pet.distanceMiles} mi</Text>
@@ -87,6 +104,17 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
             </Pressable>
           ))}
         </View>
+        {searched && totalPages > 1 && (
+          <View style={styles.pagination}>
+            <Pressable accessibilityLabel="Previous page" onPress={() => void search(page - 1)} disabled={loading || page === 0} style={[styles.pageButton, page === 0 && styles.pageButtonDisabled]}>
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </Pressable>
+            <Text accessibilityLabel={`Page ${page + 1} of ${totalPages}`} style={styles.pageText}>Page {page + 1} of {totalPages} · {totalElements} pets</Text>
+            <Pressable accessibilityLabel="Next page" onPress={() => void search(page + 1)} disabled={loading || page >= totalPages - 1} style={[styles.pageButton, page >= totalPages - 1 && styles.pageButtonDisabled]}>
+              <Text style={styles.pageButtonText}>Next</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -119,9 +147,15 @@ const styles = StyleSheet.create({
   empty: { color: color.ink, fontFamily: font.semiBold, fontSize: 18, paddingVertical: 20 },
   results: { gap: 12 },
   card: { backgroundColor: color.surface, borderRadius: 18, padding: 18, gap: 8 },
+  photo: { width: '100%', height: 180, borderRadius: 12, backgroundColor: color.surfaceActive },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   petName: { color: color.ink, fontFamily: font.extraBold, fontSize: 24 },
   distance: { color: color.ink, fontFamily: font.semiBold, fontSize: 16 },
   meta: { color: color.ink, fontFamily: font.semiBold, fontSize: 16 },
   description: { color: color.ink, fontFamily: font.regular, fontSize: 15, lineHeight: 21 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  pageButton: { backgroundColor: color.ink, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 },
+  pageButtonDisabled: { backgroundColor: color.surfaceDisabled },
+  pageButtonText: { color: color.surface, fontFamily: font.semiBold },
+  pageText: { color: color.ink, fontFamily: font.semiBold, textAlign: 'center', flex: 1 },
 });
