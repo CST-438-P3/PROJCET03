@@ -250,6 +250,7 @@ paths:
         - $ref: '#/components/parameters/Size'
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
   /favorites/{postId}:
     parameters:
