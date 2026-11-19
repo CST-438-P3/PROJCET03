@@ -42,9 +42,7 @@ paths:
         '200': { description: Signed in, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
-        '403': { description: "GitHub email is not verified (\"Your GitHub email is not verified\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '409': { description: Verified email already registered via the other provider, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
-        '502': { description: GitHub sign-in is unavailable (GitHub error or timeout), content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   /auth/google:
     post:
       tags: [auth]
@@ -59,9 +57,7 @@ paths:
         '200': { description: Signed in, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
-        '403': { description: "Google email is not verified (\"Your Google email is not verified\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '409': { description: Verified email already registered via the other provider, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
-        '502': { description: Google sign-in is unavailable (Google error or timeout), content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
   /users/me:
     get:
       tags: [users]
@@ -91,7 +87,7 @@ paths:
   /shelters:
     get:
       tags: [shelters]
-      summary: List shelters, sorted by name
+      summary: List shelters
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
@@ -205,15 +201,15 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
-        '403': { description: "Not staff for this post's shelter (\"You can't edit this post\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
     delete:
       tags: [posts]
-      summary: Delete a post and its favorites and inquiries (S7, staff of the post's shelter only)
+      summary: Delete a post (S7, staff of the post's shelter only)
       responses:
         '204': { description: Deleted }
         '401': { $ref: '#/components/responses/Problem' }
-        '403': { description: "Not staff for this post's shelter (\"You can't delete this post\")", content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
 
   /posts/nearby:
@@ -235,7 +231,7 @@ paths:
           in: query
           schema: { $ref: '#/components/schemas/Species' }
         - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/NearbySize'
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
         '400': { description: Unknown ZIP code or no ZIP set, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
@@ -250,7 +246,6 @@ paths:
         - $ref: '#/components/parameters/Size'
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } } }
-        '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
   /favorites/{postId}:
     parameters:
@@ -301,7 +296,6 @@ paths:
     post:
       tags: [admin]
       summary: Create a shelter (S10)
-      description: The ZIP code must be one the API knows (in zip_codes), or the answer is 400.
       requestBody:
         required: true
         content:
@@ -331,20 +325,9 @@ paths:
         '404': { $ref: '#/components/responses/Problem' }
     delete:
       tags: [admin]
-      summary: Delete a shelter with its staff and posts (S10)
+      summary: Delete a shelter and its posts (S10)
       responses:
         '204': { description: Deleted }
-        '401': { $ref: '#/components/responses/Problem' }
-        '403': { $ref: '#/components/responses/Problem' }
-        '404': { $ref: '#/components/responses/Problem' }
-  /admin/shelters/{shelterId}/staff:
-    parameters:
-      - $ref: '#/components/parameters/ShelterId'
-    get:
-      tags: [admin]
-      summary: List the shelter's staff, sorted by email (S10)
-      responses:
-        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StaffMember' } } } } }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
@@ -358,7 +341,6 @@ paths:
     put:
       tags: [admin]
       summary: Grant a user the shelter role for this shelter (S10)
-      description: Granting twice is fine.
       responses:
         '204': { description: Granted }
         '401': { $ref: '#/components/responses/Problem' }
@@ -367,7 +349,6 @@ paths:
     delete:
       tags: [admin]
       summary: Revoke a user's shelter role for this shelter (S10)
-      description: Revoking a user who is not staff is fine.
       responses:
         '204': { description: Revoked }
         '401': { $ref: '#/components/responses/Problem' }
@@ -387,6 +368,11 @@ components:
       name: size
       in: query
       schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    NearbySize:
+      name: size
+      in: query
+      description: Results per nearby-search page
+      schema: { type: integer, minimum: 1, maximum: 10, default: 10 }
     ShelterId:
       name: shelterId
       in: path
@@ -471,14 +457,7 @@ components:
         address: { type: string, minLength: 1, maxLength: 200 }
         zip: { $ref: '#/components/schemas/Zip' }
         phone: { type: string, maxLength: 30 }
-        email: { type: string, format: email, maxLength: 320 }
-    StaffMember:
-      type: object
-      required: [id, email]
-      properties:
-        id: { type: integer, format: int64, description: The user's id }
         email: { type: string, format: email }
-        displayName: { type: string }
     ShelterSummary:
       type: object
       required: [id, name]

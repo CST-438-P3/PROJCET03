@@ -6,7 +6,6 @@ export const color = {
   surfaceActive: '#E3F3FC',
   surfaceDisabled: '#C5E3F3',
   onSurfaceDisabled: '#23404F',
-  // Added for the admin screens: a soft page background, quieter text, thin lines and errors.
   background: '#F4F8FB',
   muted: '#5E7381',
   line: '#DCE6EC',

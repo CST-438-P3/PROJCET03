@@ -1,36 +1,45 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { color, font } from './theme';
-import { getNearbyPets, NearbyPet } from './nearbyApi';
+import { getNearbyPets, NearbyPage, NearbyPet } from './nearbyApi';
+import { ApiError } from './api';
 
-type Loader = (zip: string, distance: number) => Promise<NearbyPet[]>;
+type Loader = (zip: string, distance: number, species?: undefined, page?: number, size?: number) => Promise<NearbyPet[] | NearbyPage>;
 
-type NearbyScreenProps = {
-  loadPets?: Loader;
-  // Opens a pet's detail page (S6).
-  onOpenPet?: (pet: NearbyPet) => void;
-  // Opens the admin screens (S10). Only passed for admins, so the button shows only for them.
-  onOpenAdmin?: () => void;
-  // Opens the "My favorites" list (S8). The button only shows when this is passed in.
-  onOpenFavorites?: () => void;
-};
+type NearbyScreenProps = { loadPets?: Loader; onOpenPet?: (pet: NearbyPet) => void; onOpenAdmin?: () => void };
 
-export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin, onOpenFavorites }: NearbyScreenProps) {
+export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin }: NearbyScreenProps) {
   const [zip, setZip] = useState('93933');
   const [distance, setDistance] = useState('10');
   const [pets, setPets] = useState<NearbyPet[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  async function search() {
+  async function search(nextPage = 0) {
     setLoading(true);
     setError(null);
     try {
-      setPets(await loadPets(zip, Number(distance)));
+      const result = nextPage === 0
+        ? await loadPets(zip, Number(distance))
+        : await loadPets(zip, Number(distance), undefined, nextPage, 10);
+      if (Array.isArray(result)) {
+        setPets(result.slice(0, 10));
+        setTotalPages(result.length > 10 ? Math.ceil(result.length / 10) : result.length ? 1 : 0);
+        setTotalElements(result.length);
+      } else {
+        setPets(result.content);
+        setPage(result.page);
+        setTotalPages(result.totalPages);
+        setTotalElements(result.totalElements);
+      }
+      setPage(nextPage);
       setSearched(true);
-    } catch {
-      setError("We couldn't load nearby pets. Please try again.");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "We couldn't load nearby pets. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -39,19 +48,7 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
   return (
     <View role="main" style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* The top buttons sit side by side on the right */}
-        <View style={styles.topButtons}>
-          {onOpenFavorites && (
-            <Pressable role="button" onPress={onOpenFavorites} style={styles.favoritesButton}>
-              <Text style={styles.favoritesButtonText}>♥ My favorites</Text>
-            </Pressable>
-          )}
-          {onOpenAdmin && (
-            <Pressable role="button" onPress={onOpenAdmin} style={styles.adminButton}>
-              <Text style={styles.adminText}>Admin</Text>
-            </Pressable>
-          )}
-        </View>
+        {onOpenAdmin && <Pressable role="button" onPress={onOpenAdmin} style={styles.adminButton}><Text style={styles.adminText}>Admin</Text></Pressable>}
         <Text role="heading" aria-level={1} style={styles.title}>Pets near you</Text>
         <Text style={styles.subtitle}>Find cats and dogs you can actually visit.</Text>
         <View style={styles.form}>
@@ -71,13 +68,8 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
         {searched && !loading && pets.length === 0 && <Text style={styles.empty}>No pets within {distance} miles.</Text>}
         <View accessibilityLabel="Nearby pet results" style={styles.results}>
           {pets.map((pet) => (
-            <Pressable
-              key={pet.id}
-              role="button"
-              disabled={!onOpenPet}
-              onPress={() => onOpenPet?.(pet)}
-              style={styles.card}
-            >
+            <Pressable key={pet.id} role="button" disabled={!onOpenPet} onPress={() => onOpenPet?.(pet)} style={styles.card}>
+              {pet.photoUrl && <Image accessibilityLabel={`${pet.name} photo`} source={{ uri: pet.photoUrl }} style={styles.photo} />}
               <View style={styles.cardTop}>
                 <Text style={styles.petName}>{pet.name}</Text>
                 <Text style={styles.distance}>{pet.distanceMiles} mi</Text>
@@ -87,6 +79,17 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
             </Pressable>
           ))}
         </View>
+        {searched && totalPages > 1 && (
+          <View style={styles.pagination}>
+            <Pressable accessibilityLabel="Previous page" onPress={() => void search(page - 1)} disabled={loading || page === 0} style={[styles.pageButton, page === 0 && styles.pageButtonDisabled]}>
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </Pressable>
+            <Text accessibilityLabel={`Page ${page + 1} of ${totalPages}`} style={styles.pageText}>Page {page + 1} of {totalPages} · {totalElements} pets</Text>
+            <Pressable accessibilityLabel="Next page" onPress={() => void search(page + 1)} disabled={loading || page >= totalPages - 1} style={[styles.pageButton, page >= totalPages - 1 && styles.pageButtonDisabled]}>
+              <Text style={styles.pageButtonText}>Next</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -95,18 +98,6 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin,
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.brand },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: 24, gap: 16 },
-  topButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-  adminButton: { alignSelf: 'flex-end', minHeight: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.surface, justifyContent: 'center' },
-  adminText: { color: color.ink, fontFamily: font.semiBold, fontSize: 15 },
-  favoritesButton: {
-    alignSelf: 'flex-end',
-    minHeight: 48,
-    justifyContent: 'center',
-    borderRadius: 24,
-    backgroundColor: color.surface,
-    paddingHorizontal: 20,
-  },
-  favoritesButtonText: { color: color.ink, fontFamily: font.semiBold, fontSize: 16 },
   title: { color: color.ink, fontFamily: font.extraBold, fontSize: 40, lineHeight: 46 },
   subtitle: { color: color.ink, fontFamily: font.regular, fontSize: 18 },
   form: { backgroundColor: color.surface, borderRadius: 20, padding: 16, gap: 12 },
@@ -118,10 +109,18 @@ const styles = StyleSheet.create({
   error: { backgroundColor: color.ink, color: color.surface, borderRadius: 12, padding: 12 },
   empty: { color: color.ink, fontFamily: font.semiBold, fontSize: 18, paddingVertical: 20 },
   results: { gap: 12 },
+  adminButton: { alignSelf: 'flex-end', minHeight: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.surface, justifyContent: 'center' },
+  adminText: { color: color.ink, fontFamily: font.semiBold, fontSize: 15 },
   card: { backgroundColor: color.surface, borderRadius: 18, padding: 18, gap: 8 },
+  photo: { width: '100%', height: 180, borderRadius: 12, backgroundColor: color.surfaceActive },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   petName: { color: color.ink, fontFamily: font.extraBold, fontSize: 24 },
   distance: { color: color.ink, fontFamily: font.semiBold, fontSize: 16 },
   meta: { color: color.ink, fontFamily: font.semiBold, fontSize: 16 },
   description: { color: color.ink, fontFamily: font.regular, fontSize: 15, lineHeight: 21 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  pageButton: { backgroundColor: color.ink, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 },
+  pageButtonDisabled: { backgroundColor: color.surfaceDisabled },
+  pageButtonText: { color: color.surface, fontFamily: font.semiBold },
+  pageText: { color: color.ink, fontFamily: font.semiBold, textAlign: 'center', flex: 1 },
 });

@@ -47,3 +47,4 @@ export async function removeStaff(shelterId: number, userId: number): Promise<vo
 /** All the admin calls together, so screens can take a fake set in tests. */
 export const adminApi = { listShelters, createShelter, updateShelter, deleteShelter, listStaff, addStaff, removeStaff };
 export type AdminApi = typeof adminApi;
+

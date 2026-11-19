@@ -5,3 +5,4 @@ import { Post } from './types';
 export function getPost(postId: number): Promise<Post> {
   return api<Post>(`/posts/${postId}`);
 }
+

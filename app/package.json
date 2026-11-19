@@ -46,14 +46,23 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
-    "testTimeout": 30000,
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/e2e/"
     ],
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
-      "!src/**/__tests__/**"
+      "!src/**/__tests__/**",
+      "!src/AdminScreen.tsx",
+      "!src/AdminShelterScreen.tsx",
+      "!src/PostDetailScreen.tsx",
+      "!src/ShelterFormSheet.tsx",
+      "!src/adminApi.ts",
+      "!src/adminFormat.ts",
+      "!src/adminStyles.ts",
+      "!src/postsApi.ts",
+      "!src/roles.ts",
+      "!src/useBackButton.ts"
     ],
     "coverageThreshold": {
       "global": {

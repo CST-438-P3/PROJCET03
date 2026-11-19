@@ -14,10 +14,16 @@ export interface NearbyPet {
   distanceMiles: number;
 }
 
-interface NearbyPage { content: NearbyPet[] }
+export interface NearbyPage {
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  content: NearbyPet[];
+}
 
-export function getNearbyPets(zip: string, distance: number, species?: Species): Promise<NearbyPet[]> {
-  const params = new URLSearchParams({ zip, distance: String(distance) });
+export function getNearbyPets(zip: string, distance: number, species?: Species, page = 0, size = 10): Promise<NearbyPage> {
+  const params = new URLSearchParams({ zip, distance: String(distance), page: String(page), size: String(size) });
   if (species) params.set('species', species);
-  return api<NearbyPage>(`/posts/nearby?${params.toString()}`).then((page) => page.content);
+  return api<NearbyPage>(`/posts/nearby?${params.toString()}`);
 }

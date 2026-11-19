@@ -236,3 +236,4 @@ const styles = StyleSheet.create({
   lightButton: { minHeight: 48, minWidth: 200, alignItems: 'center', justifyContent: 'center', borderRadius: 24, borderWidth: 1, borderColor: color.ink, paddingHorizontal: 24 },
   lightButtonText: { color: color.ink, fontFamily: font.semiBold, fontSize: 17 },
 });
+

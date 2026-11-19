@@ -13,3 +13,4 @@ export function rolesFromToken(token: string | null): string[] {
     return [];
   }
 }
+

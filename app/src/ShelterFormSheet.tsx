@@ -142,3 +142,4 @@ const styles = StyleSheet.create({
   submit: { minHeight: 52, borderRadius: 26, backgroundColor: color.ink, alignItems: 'center', justifyContent: 'center' },
   submitText: { color: color.surface, fontFamily: font.semiBold, fontSize: 16 },
 });
+

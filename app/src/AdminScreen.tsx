@@ -192,3 +192,4 @@ const styles = StyleSheet.create({
   fabPlus: { color: color.surface, fontSize: 22, lineHeight: 24 },
   fabText: { color: color.surface, fontFamily: font.semiBold, fontSize: 16 },
 });
+
