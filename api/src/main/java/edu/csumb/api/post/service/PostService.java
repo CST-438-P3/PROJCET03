@@ -2,6 +2,7 @@ package edu.csumb.api.post.service;
 
 import edu.csumb.api.error.ForbiddenException;
 import edu.csumb.api.error.NotFoundException;
+import edu.csumb.api.favorite.FavoriteRepository;
 import edu.csumb.api.post.AdoptionPost;
 import edu.csumb.api.post.PostRepository;
 import edu.csumb.api.post.PostRequest;
@@ -18,11 +19,13 @@ public class PostService {
 
     private final PostRepository posts;
     private final ShelterRepository shelters;
+    private final FavoriteRepository favorites;
 
     /** Creates the service with the repositories it reads and writes. */
-    public PostService(PostRepository posts, ShelterRepository shelters) {
+    public PostService(PostRepository posts, ShelterRepository shelters, FavoriteRepository favorites) {
         this.posts = posts;
         this.shelters = shelters;
+        this.favorites = favorites;
     }
 
     /**
@@ -37,22 +40,27 @@ public class PostService {
         }
         PostRules.CheckedPost checked = PostRules.checkCreate(request);
         AdoptionPost post = posts.save(new AdoptionPost(
-            shelters.getReferenceById(shelterId),
-            checked.name(),
-            checked.species(),
-            checked.breed(),
-            checked.sex(),
-            checked.size(),
-            checked.ageMonths(),
-            checked.description(),
-            checked.photoUrl()));
+                shelters.getReferenceById(shelterId),
+                checked.name(),
+                checked.species(),
+                checked.breed(),
+                checked.sex(),
+                checked.size(),
+                checked.ageMonths(),
+                checked.description(),
+                checked.photoUrl()));
         return PostResponse.from(post);
     }
 
-    /** Returns one post, or throws NotFoundException if there is no post with this id (S6). */
+    /**
+     * Returns one post, or throws NotFoundException if there is no post with this id.
+     * favorite says whether this user saved it, so the app can show the heart filled in or empty (S8).
+     */
     @Transactional(readOnly = true)
-    public PostResponse get(long postId) {
-        return PostResponse.from(find(postId));
+    public PostResponse get(long userId, long postId) {
+        AdoptionPost post = find(postId);
+        boolean isFavorite = favorites.isFavorite(userId, postId);
+        return PostResponse.from(post).withFavorite(isFavorite);
     }
 
     /**
@@ -64,15 +72,15 @@ public class PostService {
         AdoptionPost post = findForStaff(userId, postId, "You can't edit this post");
         PostRules.CheckedPost checked = PostRules.checkUpdate(request);
         post.replace(
-            checked.name(),
-            checked.species(),
-            checked.breed(),
-            checked.sex(),
-            checked.size(),
-            checked.ageMonths(),
-            checked.description(),
-            checked.photoUrl(),
-            request.status());
+                checked.name(),
+                checked.species(),
+                checked.breed(),
+                checked.sex(),
+                checked.size(),
+                checked.ageMonths(),
+                checked.description(),
+                checked.photoUrl(),
+                request.status());
         return PostResponse.from(post);
     }
 
@@ -93,7 +101,7 @@ public class PostService {
     /** Returns the post, or throws NotFoundException if there is no post with this id. */
     private AdoptionPost find(long postId) {
         return posts.findById(postId)
-            .orElseThrow(() -> new NotFoundException("This post is no longer available"));
+                .orElseThrow(() -> new NotFoundException("This post is no longer available"));
     }
 
     /**

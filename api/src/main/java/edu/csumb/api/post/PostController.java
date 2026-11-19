@@ -36,21 +36,21 @@ public class PostController {
 
     /** Returns one post (S6). */
     @GetMapping("/{postId}")
-    public PostResponse get(@PathVariable long postId) {
-        return postService.get(postId);
+    public PostResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable long postId) {
+        return postService.get(userId(jwt), postId);
     }
 
     /** Replaces a post, for staff of the post's shelter only (S7). */
     @PutMapping("/{postId}")
     public PostResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable long postId,
-            @RequestBody PostUpdateRequest request) {
+                               @RequestBody PostUpdateRequest request) {
         return postService.update(userId(jwt), postId, request);
     }
 
     /** Changes a post's status, e.g. marks it adopted, for staff of the post's shelter only (S7). */
     @PatchMapping("/{postId}")
     public PostResponse changeStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable long postId,
-            @RequestBody PostStatusRequest request) {
+                                     @RequestBody PostStatusRequest request) {
         return postService.changeStatus(userId(jwt), postId, request);
     }
 

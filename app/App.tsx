@@ -9,18 +9,23 @@ import {
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdminScreen } from './src/AdminScreen';
+import { FavoritesScreen } from './src/FavoritesScreen';
 import { LoginScreen } from './src/LoginScreen';
 import { NearbyScreen } from './src/NearbyScreen';
-import { getNearbyPets, NearbyPet } from './src/nearbyApi';
+import { getNearbyPets } from './src/nearbyApi';
 import { PostDetailScreen } from './src/PostDetailScreen';
 import { rolesFromToken } from './src/roles';
 import { tokenStore } from './src/tokenStore';
 
 async function signIn(): Promise<void> { }
 
+// The pet whose detail page is open. Search results have a distance, favorites don't.
+type OpenPet = { id: number; distanceMiles?: number };
+
 export default function App() {
   const [signedIn, setSignedIn] = useState(false);
-  const [openPet, setOpenPet] = useState<NearbyPet | null>(null);
+  const [openPet, setOpenPet] = useState<OpenPet | null>(null);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
 
@@ -41,15 +46,21 @@ export default function App() {
       {!signedIn && <LoginScreen onSignIn={async () => { await signIn(); setSignedIn(true); }} />}
       {/* Search stays mounted under the other pages, so going back keeps the results. */}
       {signedIn && (
-        <View style={{ flex: 1, display: openPet || adminOpen ? 'none' : 'flex' }}>
+        <View style={{ flex: 1, display: openPet || adminOpen || favoritesOpen ? 'none' : 'flex' }}>
           <NearbyScreen
             loadPets={getNearbyPets}
             onOpenPet={setOpenPet}
             onOpenAdmin={isAdmin ? () => setAdminOpen(true) : undefined}
+            onOpenFavorites={() => setFavoritesOpen(true)}
           />
         </View>
       )}
       {signedIn && adminOpen && <AdminScreen onBack={() => setAdminOpen(false)} />}
+
+      {/* Favorites closes while a pet is open, so it reloads when you come back and a removed heart is gone. */}
+      {signedIn && favoritesOpen && !openPet && (
+        <FavoritesScreen onBack={() => setFavoritesOpen(false)} onOpenPet={(post) => setOpenPet({ id: post.id })} />
+      )}
       {signedIn && openPet && (
         <PostDetailScreen postId={openPet.id} distanceMiles={openPet.distanceMiles} onBack={() => setOpenPet(null)} />
       )}

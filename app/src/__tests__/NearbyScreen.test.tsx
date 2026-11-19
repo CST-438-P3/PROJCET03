@@ -50,3 +50,18 @@ test('the Admin button shows only when onOpenAdmin is given', async () => {
   await view.rerender(<NearbyScreen loadPets={async () => []} />);
   expect(view.queryByRole('button', { name: 'Admin' })).toBeNull();
 });
+
+test('The My favorites button opens favorites', async () => {
+  const onOpenFavorites = jest.fn();
+  const view = await render(<NearbyScreen loadPets={async () => pets} onOpenFavorites={onOpenFavorites} />);
+
+  await fireEvent.press(view.getByRole('button', { name: '♥ My favorites' }));
+
+  expect(onOpenFavorites).toHaveBeenCalled();
+});
+
+test('the My favorites button is hidden when there is nowhere to go', async () => {
+  const view = await render(<NearbyScreen loadPets={async () => pets} />);
+
+  expect(view.queryByRole('button', { name: '♥ My favorites' })).toBeNull();
+});
