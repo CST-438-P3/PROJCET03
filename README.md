@@ -1,6 +1,6 @@
 # PROJECT03
 
-Furever Near: find adoptable cats and dogs at shelters near you. A Spring Boot API with an Expo app for web and Android. See `docs/prd.md`.
+<!-- One line: what it is and who it's for. See docs/prd.md. -->
 
 ## Layout
 
@@ -12,24 +12,11 @@ Furever Near: find adoptable cats and dogs at shelters near you. A Spring Boot A
 
 ## Run locally
 
-**Full step-by-step guide, with expected output and fixes: [`docs/runbook.md`](docs/runbook.md#build-and-run-from-a-fresh-clone).**
-
-Short version. You need Git and Docker Desktop (running); Node 22 or newer for the app; JDK 21 for the API tests.
-No `.env` or keys are needed to run locally. Note the repo name is spelled `PROJCET03`.
+See [`docs/runbook.md`](docs/runbook.md#build-and-run-from-a-fresh-clone) for prerequisites and the full local setup.
 
 ```sh
-git clone https://github.com/CST-438-P3/PROJCET03.git
-cd PROJCET03
-docker compose up --build        # first time 3-6 min; ready at "Started ApiApplication"
-```
-
-To use live Rescue Groups data for nearby searches, set the server environment
-before starting the API:
-
-```bash
-export SPRING_PROFILES_ACTIVE=pet-provider
-export RESCUE_GROUPS_API_KEY=<your Rescue Groups API key>
-cd api && JWT_SECRET=<32+ chars> ./gradlew bootRun
+cp .env.example .env            # optional; fill in values, never commit
+docker compose up --build       # http://localhost:8080
 ```
 
 The app keeps the key on the backend. Searches use the Rescue Groups available
@@ -53,10 +40,13 @@ origin.
 
 ## Tests
 
-Docker Desktop must be running. See the runbook for expected output.
-
 ```sh
-cd api && ./gradlew test        # JDK 21; Windows PowerShell: .\gradlew.bat test
-cd app && npm ci && npm test    # Node 22+
-cd app && npm run e2e           # optional; needs the API from docker compose up
+cd api && ./gradlew test        # needs Docker (Testcontainers)
+cd app && npm test              # Jest
+cd app && npm run e2e           # Playwright + axe
 ```
+
+## Live URLs
+
+- API: TBD
+- Web: TBD

@@ -334,3 +334,4 @@ const styles = StyleSheet.create({
   },
   toastText: { flex: 1, color: color.surface, fontFamily: font.regular, fontSize: 14 },
 });
+

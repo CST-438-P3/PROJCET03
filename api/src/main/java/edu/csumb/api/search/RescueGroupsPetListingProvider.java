@@ -1,6 +1,6 @@
 package edu.csumb.api.search;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import edu.csumb.api.post.Species;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +26,10 @@ public class RescueGroupsPetListingProvider implements PetListingProvider {
                 .defaultHeader("Authorization", apiKey)
                 .defaultHeader("Content-Type", "application/vnd.api+json")
                 .build();
+    }
+
+    RescueGroupsPetListingProvider(RestClient client) {
+        this.client = client;
     }
 
     @Override
