@@ -19,4 +19,3 @@ export function tintFor(id: number): string {
 export function addressLine(address: string, zip: string): string {
   return `${address} · ${zip}`;
 }
-

@@ -29,4 +29,3 @@ export const adminStyles = StyleSheet.create({
   inputError: { backgroundColor: color.dangerSurface, borderColor: color.dangerLine },
   errorText: { color: color.danger, fontFamily: font.semiBold, fontSize: 13 },
 });
-

@@ -1,3 +1,7 @@
+# Local stack: Postgres + the Spring Boot API. Run from the repo root:
+#   docker compose up --build
+# Then open http://localhost:8080/actuator/health and look for {"status":"UP"}.
+# Values come from .env if you made one (see .env.example); the defaults below work without it.
 services:
   db:
     image: postgres:16

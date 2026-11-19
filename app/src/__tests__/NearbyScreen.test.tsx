@@ -30,20 +30,38 @@ test('shows an error when the search fails', async () => {
   expect(await view.findByRole('alert')).toHaveTextContent("We couldn't load nearby pets. Please try again.");
 });
 
-test('shows ten-result pages and loads the next page', async () => {
-  const loadPets = jest.fn(async (_zip: string, _distance: number, _species?: undefined, page = 0) => ({
-    page,
-    size: 10,
-    totalElements: 11,
-    totalPages: 2,
-    content: page === 0 ? [pets[0]] : [pets[1]],
-  }));
-  const view = await render(<NearbyScreen loadPets={loadPets} />);
-
+test('tapping a pet opens it', async () => {
+  const onOpenPet = jest.fn();
+  const view = await render(<NearbyScreen loadPets={async () => pets} onOpenPet={onOpenPet} />);
   await fireEvent.press(view.getByRole('button', { name: 'Search nearby pets' }));
-  expect(await view.findByText('Page 1 of 2 · 11 pets')).toBeTruthy();
 
-  await fireEvent.press(view.getByLabelText('Next page'));
-  await waitFor(() => expect(view.getByText('Page 2 of 2 · 11 pets')).toBeTruthy());
-  expect(loadPets).toHaveBeenLastCalledWith('93933', 10, undefined, 1, 10);
+  await fireEvent.press(await view.findByText('Luna'));
+
+  expect(onOpenPet).toHaveBeenCalledWith(pets[0]);
+});
+
+test('the Admin button shows only when onOpenAdmin is given', async () => {
+  const onOpenAdmin = jest.fn();
+  const view = await render(<NearbyScreen loadPets={async () => []} onOpenAdmin={onOpenAdmin} />);
+
+  await fireEvent.press(view.getByRole('button', { name: 'Admin' }));
+  expect(onOpenAdmin).toHaveBeenCalled();
+
+  await view.rerender(<NearbyScreen loadPets={async () => []} />);
+  expect(view.queryByRole('button', { name: 'Admin' })).toBeNull();
+});
+
+test('The My favorites button opens favorites', async () => {
+  const onOpenFavorites = jest.fn();
+  const view = await render(<NearbyScreen loadPets={async () => pets} onOpenFavorites={onOpenFavorites} />);
+
+  await fireEvent.press(view.getByRole('button', { name: '♥ My favorites' }));
+
+  expect(onOpenFavorites).toHaveBeenCalled();
+});
+
+test('the My favorites button is hidden when there is nowhere to go', async () => {
+  const view = await render(<NearbyScreen loadPets={async () => pets} />);
+
+  expect(view.queryByRole('button', { name: '♥ My favorites' })).toBeNull();
 });
