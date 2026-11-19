@@ -17,26 +17,34 @@ public record PostResponse(
         String description,
         String photoUrl,
         PostStatus status,
-        OffsetDateTime createdAt) {
+        OffsetDateTime createdAt,
+        Boolean favorite) {
 
     /** The shelter a post belongs to, the ShelterSummary schema in openapi.yaml. */
     public record ShelterSummary(long id, String name) {
     }
 
-    /** Builds the response for a saved post. */
+    /** response with the favorite field filled in for the signed-in user (S8). */
+    public PostResponse withFavorite(boolean isFavorite) {
+        return new PostResponse(id, shelter, name, species, breed, sex, size, ageMonths, description, photoUrl,
+                status, createdAt, isFavorite);
+    }
+
+    /** Builds the response for a saved post, without the favorite field. */
     public static PostResponse from(AdoptionPost post) {
         return new PostResponse(
-            post.getId(),
-            new ShelterSummary(post.getShelter().getId(), post.getShelter().getName()),
-            post.getName(),
-            post.getSpecies(),
-            post.getBreed(),
-            post.getSex(),
-            post.getSize(),
-            post.getAgeMonths(),
-            post.getDescription(),
-            post.getPhotoUrl(),
-            post.getStatus(),
-            post.getCreatedAt());
+                post.getId(),
+                new ShelterSummary(post.getShelter().getId(), post.getShelter().getName()),
+                post.getName(),
+                post.getSpecies(),
+                post.getBreed(),
+                post.getSex(),
+                post.getSize(),
+                post.getAgeMonths(),
+                post.getDescription(),
+                post.getPhotoUrl(),
+                post.getStatus(),
+                post.getCreatedAt(),
+                null);
     }
 }
