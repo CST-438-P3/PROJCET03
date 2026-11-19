@@ -20,6 +20,18 @@ cd api && JWT_SECRET=<32+ chars> ./gradlew bootRun   # http://localhost:8080
 cd app && npm install && npm run web                  # http://localhost:8081
 ```
 
+To use live Rescue Groups data for nearby searches, set the server environment
+before starting the API:
+
+```bash
+export SPRING_PROFILES_ACTIVE=pet-provider
+export RESCUE_GROUPS_API_KEY=<your Rescue Groups API key>
+cd api && JWT_SECRET=<32+ chars> ./gradlew bootRun
+```
+
+The app keeps the key on the backend. Searches use the Rescue Groups available
+animals endpoint and show at most 10 results per page.
+
 API contract: `api/src/main/resources/static/openapi.yaml`, Swagger UI at `/swagger-ui.html`.
 
 ## Deploy API to Render with Neon Postgres
