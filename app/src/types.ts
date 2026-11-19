@@ -54,3 +54,29 @@ export interface Page<T> {
   totalPages: number;
   content: T[];
 }
+
+// A shelter, the Shelter schema.
+export interface Shelter {
+  id: number;
+  name: string;
+  address: string;
+  zip: string;
+  phone?: string;
+  email?: string;
+}
+
+// What an admin types to create or edit a shelter, the ShelterCreate schema.
+export interface ShelterInput {
+  name: string;
+  address: string;
+  zip: string;
+  phone: string;
+  email: string;
+}
+
+// A user who is staff for a shelter, the StaffMember schema.
+export interface StaffMember {
+  id: number;
+  email: string;
+  displayName?: string;
+}

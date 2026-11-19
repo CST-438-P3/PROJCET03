@@ -9,11 +9,13 @@ type NearbyScreenProps = {
   loadPets?: Loader;
   // Opens a pet's detail page (S6).
   onOpenPet?: (pet: NearbyPet) => void;
+  // Opens the admin screens (S10). Only passed for admins, so the button shows only for them.
+  onOpenAdmin?: () => void;
   // Opens the "My favorites" list (S8). The button only shows when this is passed in.
   onOpenFavorites?: () => void;
 };
 
-export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenFavorites }: NearbyScreenProps) {
+export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenAdmin, onOpenFavorites }: NearbyScreenProps) {
   const [zip, setZip] = useState('93933');
   const [distance, setDistance] = useState('10');
   const [pets, setPets] = useState<NearbyPet[]>([]);
@@ -37,11 +39,19 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenFavori
   return (
     <View role="main" style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        {onOpenFavorites && (
-          <Pressable role="button" onPress={onOpenFavorites} style={styles.favoritesButton}>
-            <Text style={styles.favoritesButtonText}>♥ My favorites</Text>
-          </Pressable>
-        )}
+        {/* The top buttons sit side by side on the right */}
+        <View style={styles.topButtons}>
+          {onOpenFavorites && (
+            <Pressable role="button" onPress={onOpenFavorites} style={styles.favoritesButton}>
+              <Text style={styles.favoritesButtonText}>♥ My favorites</Text>
+            </Pressable>
+          )}
+          {onOpenAdmin && (
+            <Pressable role="button" onPress={onOpenAdmin} style={styles.adminButton}>
+              <Text style={styles.adminText}>Admin</Text>
+            </Pressable>
+          )}
+        </View>
         <Text role="heading" aria-level={1} style={styles.title}>Pets near you</Text>
         <Text style={styles.subtitle}>Find cats and dogs you can actually visit.</Text>
         <View style={styles.form}>
@@ -85,6 +95,9 @@ export function NearbyScreen({ loadPets = getNearbyPets, onOpenPet, onOpenFavori
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.brand },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: 24, gap: 16 },
+  topButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  adminButton: { alignSelf: 'flex-end', minHeight: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: color.surface, justifyContent: 'center' },
+  adminText: { color: color.ink, fontFamily: font.semiBold, fontSize: 15 },
   favoritesButton: {
     alignSelf: 'flex-end',
     minHeight: 48,
